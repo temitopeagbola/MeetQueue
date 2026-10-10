@@ -7,6 +7,7 @@ import {
   groupSlotsByDay,
   isSlotAvailable,
   mergeRanges,
+  subtractRange,
   type SlotQuery,
   type WeeklyRule,
 } from '../src/slots';
@@ -302,5 +303,27 @@ describe('findRuleProblems', () => {
       findRuleProblems([nineToFive(MON), { weekday: MON, startMinute: 600, endMinute: 700 }]),
     ).toEqual(['Availability windows overlap on Monday.']);
     expect(findRuleProblems([{ weekday: MON, startMinute: 600, endMinute: 600 }])).toHaveLength(1);
+  });
+});
+
+describe('subtractRange', () => {
+  const t = (h: number) => new Date(Date.UTC(2026, 9, 12, h));
+  it('cuts a hole out of overlapping ranges and keeps the rest', () => {
+    const result = subtractRange(
+      [
+        { start: t(8), end: t(12) },
+        { start: t(13), end: t(14) },
+      ],
+      { start: t(9), end: t(10) },
+    );
+    expect(result.map((r) => [r.start.getUTCHours(), r.end.getUTCHours()])).toEqual([
+      [8, 9],
+      [10, 12],
+      [13, 14],
+    ]);
+  });
+
+  it('drops ranges fully covered by the cut', () => {
+    expect(subtractRange([{ start: t(9), end: t(10) }], { start: t(8), end: t(11) })).toEqual([]);
   });
 });

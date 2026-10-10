@@ -267,3 +267,17 @@ export function findRuleProblems(rules: WeeklyRule[]): string[] {
   }
   return problems;
 }
+
+/** Removes `cut` from every range (used to ignore a booking's own calendar event). */
+export function subtractRange(ranges: TimeRange[], cut: TimeRange): TimeRange[] {
+  const out: TimeRange[] = [];
+  for (const range of ranges) {
+    if (range.end <= cut.start || range.start >= cut.end) {
+      out.push(range);
+      continue;
+    }
+    if (range.start < cut.start) out.push({ start: range.start, end: cut.start });
+    if (range.end > cut.end) out.push({ start: cut.end, end: range.end });
+  }
+  return out;
+}
