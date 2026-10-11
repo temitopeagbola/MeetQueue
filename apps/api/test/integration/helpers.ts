@@ -1,13 +1,16 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { buildApp } from '../../src/app';
 import { createDb, type Db } from '../../src/db';
-import { loadConfig } from '../../src/env';
+import { loadConfig, loadDotenvFiles } from '../../src/env';
 import { MockCalendarProvider } from '../../src/providers/calendar/mock';
 import type { CalendarProvider } from '../../src/providers/calendar/types';
 import { ConsoleEmailProvider } from '../../src/providers/email/console';
 
+loadDotenvFiles();
+
+/** Defaults to the docker-compose Postgres (`docker compose up -d db`). */
 export const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/meetqueue_test';
+  process.env.TEST_DATABASE_URL || 'postgresql://meetqueue:meetqueue@localhost:5432/meetqueue_test';
 
 /** Sunday 11 Oct 2026, 12:00 UTC. Every test runs against this fixed clock. */
 export const NOW = new Date('2026-10-11T12:00:00Z');
