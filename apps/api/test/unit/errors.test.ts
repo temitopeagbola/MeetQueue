@@ -32,12 +32,14 @@ describe('isExclusionViolation', () => {
 
   it('treats exclusion violations and deadlocks as slot contention', () => {
     const wrap = (code: string) => ({
-      code: 'P2034',
+      code: 'P2039',
       meta: { driverAdapterError: { cause: { originalCode: code } } },
     });
     expect(isSlotContention(wrap('23P01'))).toBe(true);
     expect(isSlotContention(wrap('40P01'))).toBe(true);
     expect(isSlotContention(wrap('23505'))).toBe(false);
+    // Prisma's own mapping of a deadlock, with no driver metadata attached.
+    expect(isSlotContention({ code: 'P2034', meta: {} })).toBe(true);
     expect(isSlotContention(new Error('boom'))).toBe(false);
   });
 

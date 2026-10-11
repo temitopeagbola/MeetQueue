@@ -67,10 +67,11 @@ export function isExclusionViolation(error: unknown): boolean {
 
 /**
  * True when a booking write lost a race for its time range: the exclusion constraint fired
- * (23P01), or Postgres broke a deadlock between two conflicting inserts (40P01). Either way
- * someone else is taking that slot.
+ * (23P01), or Postgres broke a deadlock between two conflicting inserts (40P01, which Prisma
+ * reports as P2034 "write conflict or deadlock"). Either way someone else is taking that slot.
  */
 export function isSlotContention(error: unknown): boolean {
+  if ((error as { code?: unknown } | null)?.code === 'P2034') return true;
   const code = postgresCode(error);
   return code === '23P01' || code === '40P01';
 }
