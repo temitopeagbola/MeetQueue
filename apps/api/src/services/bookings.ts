@@ -176,13 +176,22 @@ export class BookingService {
     return { booking, host: booking.host, meetingType: booking.meetingType };
   }
 
-  /** Notifications are best-effort: a mail outage must not turn a saved booking into a 500. */
-  private async safely(task: () => Promise<void>, what: string) {
-    try {
-      await task();
-    } catch (error) {
-      this.deps.log.error({ err: error }, `${what} failed`);
-    }
+  private readonly background = new Set<Promise<void>>();
+
+  /**
+   * Notifications run after the response is sent: the booking is already committed, so a slow
+   * or failing mail relay must neither delay the confirmation nor turn it into an error.
+   */
+  private later(task: () => Promise<void>, what: string) {
+    const promise = task()
+      .catch((error: unknown) => this.deps.log.error({ err: error }, `${what} failed`))
+      .finally(() => this.background.delete(promise));
+    this.background.add(promise);
+  }
+
+  /** Waits for in-flight notifications (graceful shutdown, tests). */
+  async drain() {
+    while (this.background.size) await Promise.all([...this.background]);
   }
 
   async create(
@@ -225,7 +234,7 @@ export class BookingService {
     }
     const inviteSent = sync?.inviteSent ?? false;
     const confirmed = booking;
-    await this.safely(
+    this.later(
       () =>
         this.deps.notifier.bookingConfirmed(this.context(confirmed), { manageToken, inviteSent }),
       'confirmation email',
@@ -309,7 +318,7 @@ export class BookingService {
     }
 
     const updated = booking;
-    await this.safely(
+    this.later(
       () =>
         this.deps.notifier.bookingRescheduled(this.context(updated), {
           manageToken: token,
@@ -351,7 +360,7 @@ export class BookingService {
           )
         : false;
     const cancelled = booking;
-    await this.safely(
+    this.later(
       () =>
         this.deps.notifier.bookingCancelled(this.context(cancelled), {
           by,

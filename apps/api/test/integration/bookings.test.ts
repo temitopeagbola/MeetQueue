@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { computeBookingTimes } from '@meetqueue/core';
 import { isExclusionViolation } from '../../src/lib/errors';
+import type { EmailProvider } from '../../src/providers/email/types';
 import {
   bookUrl,
   bookingPayload,
@@ -17,9 +18,11 @@ beforeAll(async () => {
   ctx = await createTestApp();
 });
 afterAll(async () => {
+  await ctx.settle();
   await ctx.close();
 });
 beforeEach(async () => {
+  await ctx.settle();
   await resetDatabase(ctx.db);
   ctx.email.sent.length = 0;
   ctx.calendar.events.clear();
@@ -89,6 +92,7 @@ describe('public booking flow', () => {
     });
     const { manageToken } = response.json();
 
+    await ctx.settle();
     const invitee = ctx.email.sent.find((m) => m.to === 'grace@example.com')!;
     expect(invitee.subject).toBe('Confirmed: Consultation with Ada Host');
     expect(invitee.text).toContain(`/manage/${manageToken}`);
@@ -148,6 +152,39 @@ describe('public booking flow', () => {
       payload: { isActive: false },
     });
     expect((await ctx.app.inject({ method: 'GET', url: slotsUrl() })).statusCode).toBe(404);
+  });
+});
+
+describe('notifications', () => {
+  it('confirms the booking without waiting for a slow mail relay', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const slowEmail: EmailProvider = {
+      name: 'smtp',
+      send: async () => {
+        await gate;
+        return 'SENT';
+      },
+    };
+    const slow = await createTestApp({ emailProvider: slowEmail });
+    try {
+      await setupHost(slow.app);
+      const response = await slow.app.inject({
+        method: 'POST',
+        url: bookUrl(),
+        payload: bookingPayload(MONDAY_10),
+      });
+      expect(response.statusCode).toBe(201);
+      expect(await slow.db.emailLog.count()).toBe(0); // still "sending"
+
+      release();
+      await slow.settle();
+      const logs = await slow.db.emailLog.findMany();
+      expect(logs.map((l) => l.status)).toEqual(['SENT', 'SENT']);
+    } finally {
+      release();
+      await slow.close();
+    }
   });
 });
 
@@ -303,6 +340,7 @@ describe('manage links: reschedule, cancel, ICS', () => {
 
     const row = await ctx.db.booking.findFirstOrThrow();
     expect(row.icsSequence).toBe(1);
+    await ctx.settle();
     const email = ctx.email.sent.find((m) => m.subject.startsWith('Rescheduled'))!;
     expect(email.ics?.content).toContain('SEQUENCE:1');
     expect(email.text).toContain('Was: Monday 12 October 2026, 06:00');
@@ -334,6 +372,7 @@ describe('manage links: reschedule, cancel, ICS', () => {
     });
     expect(await slotTimes()).toContain(MONDAY_10);
 
+    await ctx.settle();
     const cancelEmail = ctx.email.sent.find(
       (m) => m.subject.startsWith('Cancelled') && m.to === 'grace@example.com',
     )!;

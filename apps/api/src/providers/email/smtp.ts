@@ -13,7 +13,13 @@ export class SmtpEmailProvider implements EmailProvider {
     smtpUrl: string,
     private readonly from: string,
   ) {
-    this.transport = nodemailer.createTransport(smtpUrl);
+    // Fail fast instead of nodemailer's multi-minute defaults when a relay is slow or down.
+    this.transport = nodemailer.createTransport({
+      url: smtpUrl,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
+    });
   }
 
   async send(message: EmailMessage): Promise<'SENT'> {

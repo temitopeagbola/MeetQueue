@@ -5,6 +5,7 @@ import { loadConfig, loadDotenvFiles } from '../../src/env';
 import { MockCalendarProvider } from '../../src/providers/calendar/mock';
 import type { CalendarProvider } from '../../src/providers/calendar/types';
 import { ConsoleEmailProvider } from '../../src/providers/email/console';
+import type { EmailProvider } from '../../src/providers/email/types';
 
 loadDotenvFiles();
 
@@ -21,11 +22,17 @@ export interface TestContext {
   calendar: MockCalendarProvider;
   email: ConsoleEmailProvider;
   clock: { now: Date };
+  /** Waits for background notification emails to finish. */
+  settle(): Promise<void>;
   close(): Promise<void>;
 }
 
 export async function createTestApp(
-  options: { google?: CalendarProvider; env?: Record<string, string> } = {},
+  options: {
+    google?: CalendarProvider;
+    env?: Record<string, string>;
+    emailProvider?: EmailProvider;
+  } = {},
 ): Promise<TestContext> {
   const config = loadConfig({
     NODE_ENV: 'test',
@@ -46,7 +53,7 @@ export async function createTestApp(
     config,
     db,
     calendarProviders: { mock: calendar, ...(options.google ? { google: options.google } : {}) },
-    emailProvider: email,
+    emailProvider: options.emailProvider ?? email,
     now: () => clock.now,
     logger: false,
   });
@@ -57,6 +64,7 @@ export async function createTestApp(
     calendar,
     email,
     clock,
+    settle: () => app.deps.bookings.drain(),
     async close() {
       await app.close();
       await db.$disconnect();

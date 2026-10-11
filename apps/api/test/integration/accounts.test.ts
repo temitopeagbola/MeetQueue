@@ -17,9 +17,11 @@ beforeAll(async () => {
   ctx = await createTestApp();
 });
 afterAll(async () => {
+  await ctx.settle();
   await ctx.close();
 });
 beforeEach(async () => {
+  await ctx.settle();
   await resetDatabase(ctx.db);
 });
 
@@ -317,6 +319,7 @@ describe('demo account', () => {
     expect(emails).not.toContain('visitor.real@gmail.com');
     expect(emails).toContain('jordan.lee@example.com');
 
+    await ctx.settle();
     const log = await ctx.app.inject({ method: 'GET', url: '/api/emails', headers: { cookie } });
     expect(log.body).not.toContain('visitor.real@gmail.com');
   });

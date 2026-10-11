@@ -104,6 +104,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   const notifier = new Notifier(db, emailProvider, consoleEmail, config.webOrigin, app.log);
   const bookings = new BookingService({ db, calendar, notifier, now, log: app.log });
   app.decorate('deps', { config, db, cipher, calendar, bookings, notifier, emailProvider, now });
+  // Let queued notification emails finish before the process exits.
+  app.addHook('onClose', async () => bookings.drain());
   app.decorateRequest('user', null);
 
   // Only JSON bodies: blocks "simple" cross-site form posts as a CSRF backstop.

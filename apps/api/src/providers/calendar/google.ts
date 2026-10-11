@@ -24,6 +24,8 @@ export interface GoogleOptions {
   clientSecret: string;
   redirectUri: string;
   fetch?: typeof fetch;
+  /** Per-request timeout; a slow Google API must not hold a booking request open. */
+  timeoutMs?: number;
 }
 
 export class GoogleApiError extends Error {
@@ -74,10 +76,16 @@ function eventBody(event: CalendarEventInput) {
 /** Google Calendar over plain REST + OAuth 2.0 (no SDK; keeps the bundle small and testable). */
 export class GoogleCalendarProvider implements CalendarProvider {
   readonly name = 'google' as const;
-  private readonly fetch: typeof fetch;
+  private readonly fetchImpl: typeof fetch;
+  private readonly timeoutMs: number;
 
   constructor(private readonly options: GoogleOptions) {
-    this.fetch = options.fetch ?? globalThis.fetch;
+    this.fetchImpl = options.fetch ?? globalThis.fetch;
+    this.timeoutMs = options.timeoutMs ?? 10_000;
+  }
+
+  private fetch(url: string, init: RequestInit) {
+    return this.fetchImpl(url, { ...init, signal: AbortSignal.timeout(this.timeoutMs) });
   }
 
   authorizationUrl(state: string): string {
