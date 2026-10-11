@@ -65,6 +65,16 @@ export function isExclusionViolation(error: unknown): boolean {
   return postgresCode(error) === '23P01';
 }
 
+/**
+ * True when a booking write lost a race for its time range: the exclusion constraint fired
+ * (23P01), or Postgres broke a deadlock between two conflicting inserts (40P01). Either way
+ * someone else is taking that slot.
+ */
+export function isSlotContention(error: unknown): boolean {
+  const code = postgresCode(error);
+  return code === '23P01' || code === '40P01';
+}
+
 export function isUniqueViolation(error: unknown): boolean {
   const code = (error as { code?: unknown } | null)?.code;
   return code === 'P2002' || postgresCode(error) === '23505';

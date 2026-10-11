@@ -18,7 +18,7 @@ import type { Db } from '../db';
 import { toManageBookingDTO } from '../dto';
 import type { Booking, MeetingType, User } from '../generated/prisma/client';
 import { randomToken, sha256 } from '../lib/crypto';
-import { badRequest, conflict, isExclusionViolation, notFound } from '../lib/errors';
+import { badRequest, conflict, isSlotContention, notFound } from '../lib/errors';
 import type { Logger } from '../lib/logger';
 import type { CalendarEventInput } from '../providers/calendar/types';
 import type { CalendarService } from './calendar';
@@ -33,9 +33,6 @@ const SLOT_TAKEN = () =>
   conflict('SLOT_TAKEN', 'Someone just booked that time. Please pick another slot.');
 const SLOT_UNAVAILABLE = () =>
   conflict('SLOT_UNAVAILABLE', 'That time is no longer available. Please pick another slot.');
-
-/** Is this Prisma's "record to update not found" (the CONFIRMED guard didn't match)? */
-const isNotFoundOnUpdate = (error: unknown) => (error as { code?: string })?.code === 'P2025';
 
 export interface BookingServiceDeps {
   db: Db;
@@ -172,6 +169,15 @@ export class BookingService {
     };
   }
 
+  private async recordCalendarEvent(
+    booking: FullBooking,
+    sync: { provider: string; eventId: string },
+  ): Promise<FullBooking> {
+    const data = { calendarProvider: sync.provider, calendarEventId: sync.eventId };
+    await this.db.booking.updateMany({ where: { id: booking.id }, data });
+    return { ...booking, ...data };
+  }
+
   private context(booking: FullBooking): BookingContext {
     return { booking, host: booking.host, meetingType: booking.meetingType };
   }
@@ -204,9 +210,12 @@ export class BookingService {
     const times = await this.assertBookable(host, meetingType, start);
 
     const manageToken = randomToken();
-    let booking: FullBooking;
+    // A single INSERT, deliberately without `include`: Prisma would wrap create+include in a
+    // transaction that holds a pooled connection while Postgres makes this insert wait on a
+    // competing one, which under load can time out instead of failing cleanly with 23P01.
+    let id: string;
     try {
-      booking = await this.db.booking.create({
+      ({ id } = await this.db.booking.create({
         data: {
           hostId: host.id,
           meetingTypeId: meetingType.id,
@@ -217,21 +226,16 @@ export class BookingService {
           ...times,
           manageTokenHash: sha256(manageToken),
         },
-        include,
-      });
+        select: { id: true },
+      }));
     } catch (error) {
-      if (isExclusionViolation(error)) throw SLOT_TAKEN();
+      if (isSlotContention(error)) throw SLOT_TAKEN();
       throw error;
     }
 
+    let booking = await this.db.booking.findUniqueOrThrow({ where: { id }, include });
     const sync = await this.deps.calendar.createEvent(host.id, this.eventInput(booking));
-    if (sync) {
-      booking = await this.db.booking.update({
-        where: { id: booking.id },
-        data: { calendarProvider: sync.provider, calendarEventId: sync.eventId },
-        include,
-      });
-    }
+    if (sync) booking = await this.recordCalendarEvent(booking, sync);
     const inviteSent = sync?.inviteSent ?? false;
     const confirmed = booking;
     this.later(
@@ -284,18 +288,19 @@ export class BookingService {
     }
     const times = await this.assertBookable(current.host, current.meetingType, start, current);
 
-    let booking: FullBooking;
+    // Single UPDATE guarded on status (see create() for why there's no `include` here).
+    let updatedRows: number;
     try {
-      booking = await this.db.booking.update({
+      ({ count: updatedRows } = await this.db.booking.updateMany({
         where: { id: current.id, status: 'CONFIRMED' },
         data: { ...times, icsSequence: { increment: 1 }, rescheduleCount: { increment: 1 } },
-        include,
-      });
+      }));
     } catch (error) {
-      if (isExclusionViolation(error)) throw SLOT_TAKEN();
-      if (isNotFoundOnUpdate(error)) this.assertChangeable({ ...current, status: 'CANCELLED' });
+      if (isSlotContention(error)) throw SLOT_TAKEN();
       throw error;
     }
+    if (updatedRows === 0) this.assertChangeable({ ...current, status: 'CANCELLED' });
+    let booking = await this.db.booking.findUniqueOrThrow({ where: { id: current.id }, include });
 
     let inviteSent = false;
     if (booking.calendarProvider && booking.calendarEventId) {
@@ -309,11 +314,7 @@ export class BookingService {
       const sync = await this.deps.calendar.createEvent(booking.hostId, this.eventInput(booking));
       if (sync) {
         inviteSent = sync.inviteSent;
-        booking = await this.db.booking.update({
-          where: { id: booking.id },
-          data: { calendarProvider: sync.provider, calendarEventId: sync.eventId },
-          include,
-        });
+        booking = await this.recordCalendarEvent(booking, sync);
       }
     }
 
@@ -333,23 +334,19 @@ export class BookingService {
 
   private async cancel(current: FullBooking, by: 'HOST' | 'INVITEE', reason?: string) {
     this.assertChangeable(current);
-    let booking: FullBooking;
-    try {
-      booking = await this.db.booking.update({
-        where: { id: current.id, status: 'CONFIRMED' },
-        data: {
-          status: 'CANCELLED',
-          cancelledAt: this.deps.now(),
-          cancelledBy: by,
-          cancelReason: reason || null,
-          icsSequence: { increment: 1 },
-        },
-        include,
-      });
-    } catch (error) {
-      if (isNotFoundOnUpdate(error)) this.assertChangeable({ ...current, status: 'CANCELLED' });
-      throw error;
-    }
+    const { count } = await this.db.booking.updateMany({
+      where: { id: current.id, status: 'CONFIRMED' },
+      data: {
+        status: 'CANCELLED',
+        cancelledAt: this.deps.now(),
+        cancelledBy: by,
+        cancelReason: reason || null,
+        icsSequence: { increment: 1 },
+      },
+    });
+    // Someone else cancelled it between our read and this write.
+    if (count === 0) this.assertChangeable({ ...current, status: 'CANCELLED' });
+    const booking = await this.db.booking.findUniqueOrThrow({ where: { id: current.id }, include });
 
     const inviteSent =
       booking.calendarProvider && booking.calendarEventId

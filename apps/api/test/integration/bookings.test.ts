@@ -217,8 +217,17 @@ describe('double-booking protection', () => {
       ),
     );
     const statuses = attempts.map((r) => r.statusCode).sort();
-    expect(statuses.filter((s) => s === 201)).toHaveLength(1);
-    expect(statuses.filter((s) => s === 409)).toHaveLength(7);
+    const losers = attempts
+      .filter((r) => r.statusCode !== 201)
+      .map((r) => `${r.statusCode} ${r.body}`);
+    expect(
+      statuses.filter((s) => s === 201),
+      losers.join('\n'),
+    ).toHaveLength(1);
+    expect(
+      statuses.filter((s) => s === 409),
+      losers.join('\n'),
+    ).toHaveLength(7);
     expect(await ctx.db.booking.count({ where: { status: 'CONFIRMED' } })).toBe(1);
   });
 

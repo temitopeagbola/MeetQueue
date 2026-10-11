@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   AppError,
   isExclusionViolation,
+  isSlotContention,
   isUniqueViolation,
   parseInput,
 } from '../../src/lib/errors';
@@ -27,6 +28,17 @@ describe('isExclusionViolation', () => {
     expect(isExclusionViolation(new Error('boom'))).toBe(false);
     expect(isExclusionViolation({ code: 'P2039' })).toBe(false);
     expect(isExclusionViolation(null)).toBe(false);
+  });
+
+  it('treats exclusion violations and deadlocks as slot contention', () => {
+    const wrap = (code: string) => ({
+      code: 'P2034',
+      meta: { driverAdapterError: { cause: { originalCode: code } } },
+    });
+    expect(isSlotContention(wrap('23P01'))).toBe(true);
+    expect(isSlotContention(wrap('40P01'))).toBe(true);
+    expect(isSlotContention(wrap('23505'))).toBe(false);
+    expect(isSlotContention(new Error('boom'))).toBe(false);
   });
 
   it('recognises unique violations', () => {
