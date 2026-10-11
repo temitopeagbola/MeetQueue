@@ -94,6 +94,10 @@ function atLocalMinute(day: DateTime, minute: number): DateTime {
 /**
  * Expands weekly rules into concrete instant ranges for every host-local day touching
  * [from, to). Uses wall-clock arithmetic, so "09:00–17:00" stays 09:00–17:00 local across DST.
+ *
+ * Overlapping rules are merged within a day but never across midnight: each day's slot grid
+ * is anchored to that day's own window start. (Merging across days would make the grid depend
+ * on where a query starts, and drift by the DST hour when the clocks change.)
  */
 export function expandAvailability(
   rules: WeeklyRule[],
@@ -107,15 +111,17 @@ export function expandAvailability(
   const lastDay = DateTime.fromJSDate(to, { zone }).startOf('day').plus({ days: 1 });
   while (day <= lastDay) {
     const weekday = day.weekday % 7; // Luxon: 1 = Monday … 7 = Sunday
+    const dayWindows: TimeRange[] = [];
     for (const rule of rules) {
       if (rule.weekday !== weekday) continue;
       const start = atLocalMinute(day, rule.startMinute);
       const end = atLocalMinute(day, rule.endMinute);
-      if (end > start) windows.push({ start: start.toJSDate(), end: end.toJSDate() });
+      if (end > start) dayWindows.push({ start: start.toJSDate(), end: end.toJSDate() });
     }
+    windows.push(...mergeRanges(dayWindows));
     day = day.plus({ days: 1 }).startOf('day');
   }
-  return mergeRanges(windows).filter((w) => w.end > from && w.start < to);
+  return windows.filter((w) => w.end > from && w.start < to);
 }
 
 /** Binary search over merged (sorted, disjoint) ranges for any overlap with [start, end). */

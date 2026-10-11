@@ -329,3 +329,39 @@ describe('subtractRange', () => {
     expect(subtractRange([{ start: t(9), end: t(10) }], { start: t(8), end: t(11) })).toEqual([]);
   });
 });
+
+describe('grid stability across DST', () => {
+  it('every listed slot is accepted, even for 24/7 availability and odd intervals', () => {
+    const rules = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+      weekday,
+      startMinute: 0,
+      endMinute: 1440,
+    }));
+    for (const slotIntervalMinutes of [45, 90]) {
+      const input = {
+        hostTimezone: 'Europe/London',
+        rules,
+        busy: [],
+        durationMinutes: 30,
+        bufferBeforeMinutes: 0,
+        bufferAfterMinutes: 0,
+        slotIntervalMinutes,
+        minNoticeMinutes: 0,
+        maxDaysAhead: 30,
+        now: new Date('2026-10-12T00:00:00Z'),
+      };
+      // UK clocks go back on Sunday 25 October 2026.
+      const slots = generateSlots({
+        ...input,
+        rangeStart: new Date('2026-10-24T00:00:00Z'),
+        rangeEnd: new Date('2026-10-28T00:00:00Z'),
+      });
+      expect(slots.length).toBeGreaterThan(0);
+      const rejected = slots.filter((slot) => !isSlotAvailable(input, slot));
+      expect(
+        rejected.map((d) => d.toISOString()),
+        `interval ${slotIntervalMinutes}`,
+      ).toEqual([]);
+    }
+  });
+});
