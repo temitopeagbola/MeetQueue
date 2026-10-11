@@ -265,23 +265,27 @@ Every variable is listed with comments in [`.env.example`](.env.example).
 ## Security notes
 
 - Passwords: scrypt with per-user salt; logins for unknown emails still run scrypt (no timing
-  oracle). Sessions: random 256-bit token in an `HttpOnly` cookie, stored hashed, 30-day expiry.
+  oracle); an account locks for 15 minutes after 10 failed sign-ins. Sessions: random 256-bit
+  token in an `HttpOnly` cookie, stored hashed, 30-day expiry.
 - CSRF: `SameSite=Lax` cookies, JSON-only request bodies, and an `Origin` check on every write.
 - OAuth: `state` bound to a short-lived cookie; refresh tokens encrypted with AES-256-GCM;
-  the shared demo account can't connect a real Google account.
+  the shared demo account can't connect a real Google account, and its username/email are
+  reserved so nobody can register them and capture demo visitors.
 - Manage links: hashed at rest, redacted from request logs and the email log, never sent as a
   `Referer`, `noindex`.
 - Input validation with zod at every API boundary (params, query and body), plus DB check
-  constraints. Per-route rate limits on auth, booking and manage endpoints.
+  constraints. Per-route rate limits on auth, booking and manage endpoints, keyed on the
+  visitor IP Netlify forwards (`x-nf-client-connection-ip`).
 
 ## Known limitations and tech debt
 
-- Rate limiting is in-memory (fine for one Render instance) and keys on `X-Forwarded-For`, which a
-  client can spoof. Use a shared store (e.g. Upstash Redis) before scaling out.
+- Rate limiting is in-memory (fine for one Render instance). Its client-IP header is trustworthy
+  only via Netlify: someone calling the public `onrender.com` URL directly can forge it. Next
+  steps: a shared secret header added by the web tier, and a shared store (e.g. Upstash Redis).
 - The public booking form can send email to any address (that's the product), so with SMTP
   enabled it's rate-limited but has no CAPTCHA.
 - No email verification or password reset yet; no date-specific availability overrides.
 - `WEB_ORIGIN` must match the domain users actually visit; Netlify deploy previews can read but
   writes are rejected by the origin check (and would hit the production API anyway).
-- Google testing-mode refresh tokens expire after 7 days; the app falls back to ICS emails and
-  logs the failure until the host reconnects.
+- Google testing-mode refresh tokens expire after 7 days. Bookings keep working with ICS emails,
+  and the Integrations page flags "Needs attention" with the reason until the host reconnects.
