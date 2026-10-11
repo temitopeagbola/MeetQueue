@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GoogleApiError, GoogleCalendarProvider, GOOGLE_SCOPES } from '../../src/providers/calendar/google';
+import {
+  GoogleApiError,
+  GoogleCalendarProvider,
+  GOOGLE_SCOPES,
+} from '../../src/providers/calendar/google';
 
 type Call = { url: string; init: RequestInit };
 
@@ -50,10 +54,21 @@ describe('GoogleCalendarProvider', () => {
 
   it('exchanges a code for tokens and reads the account email', async () => {
     const { fetch, calls } = fakeFetch([
-      { body: { access_token: 'a1', refresh_token: 'r1', expires_in: 3600, id_token: idToken('host@gmail.com') } },
+      {
+        body: {
+          access_token: 'a1',
+          refresh_token: 'r1',
+          expires_in: 3600,
+          id_token: idToken('host@gmail.com'),
+        },
+      },
     ]);
     const account = await new GoogleCalendarProvider({ ...options, fetch }).exchangeCode('code-1');
-    expect(account).toMatchObject({ accessToken: 'a1', refreshToken: 'r1', accountEmail: 'host@gmail.com' });
+    expect(account).toMatchObject({
+      accessToken: 'a1',
+      refreshToken: 'r1',
+      accountEmail: 'host@gmail.com',
+    });
     expect(account.expiresAt!.getTime()).toBeGreaterThan(Date.now());
     const body = new URLSearchParams(calls[0]!.init.body as URLSearchParams);
     expect(body.get('grant_type')).toBe('authorization_code');
@@ -69,20 +84,32 @@ describe('GoogleCalendarProvider', () => {
 
   it('maps free/busy blocks', async () => {
     const { fetch, calls } = fakeFetch([
-      { body: { calendars: { primary: { busy: [{ start: '2026-10-12T09:00:00Z', end: '2026-10-12T10:00:00Z' }] } } } },
+      {
+        body: {
+          calendars: {
+            primary: { busy: [{ start: '2026-10-12T09:00:00Z', end: '2026-10-12T10:00:00Z' }] },
+          },
+        },
+      },
     ]);
     const busy = await new GoogleCalendarProvider({ ...options, fetch }).busy(tokens, 'primary', {
       start: new Date('2026-10-12T00:00:00Z'),
       end: new Date('2026-10-13T00:00:00Z'),
     });
-    expect(busy).toEqual([{ start: new Date('2026-10-12T09:00:00Z'), end: new Date('2026-10-12T10:00:00Z') }]);
+    expect(busy).toEqual([
+      { start: new Date('2026-10-12T09:00:00Z'), end: new Date('2026-10-12T10:00:00Z') },
+    ]);
     expect(calls[0]!.url).toBe('https://www.googleapis.com/calendar/v3/freeBusy');
     expect((calls[0]!.init.headers as Record<string, string>).authorization).toBe('Bearer access');
   });
 
   it('creates events that invite the attendee', async () => {
     const { fetch, calls } = fakeFetch([{ body: { id: 'evt-1' } }]);
-    const created = await new GoogleCalendarProvider({ ...options, fetch }).createEvent(tokens, 'primary', event);
+    const created = await new GoogleCalendarProvider({ ...options, fetch }).createEvent(
+      tokens,
+      'primary',
+      event,
+    );
     expect(created).toEqual({ eventId: 'evt-1', inviteSent: true });
     expect(calls[0]!.url).toContain('/calendars/primary/events?sendUpdates=all');
     const body = JSON.parse(calls[0]!.init.body as string);
@@ -97,12 +124,20 @@ describe('GoogleCalendarProvider', () => {
   it('treats an already-deleted event as success and surfaces other failures', async () => {
     const gone = fakeFetch([{ status: 410, body: { error: 'gone' } }]);
     await expect(
-      new GoogleCalendarProvider({ ...options, fetch: gone.fetch }).deleteEvent(tokens, 'primary', 'evt-1'),
+      new GoogleCalendarProvider({ ...options, fetch: gone.fetch }).deleteEvent(
+        tokens,
+        'primary',
+        'evt-1',
+      ),
     ).resolves.toBeUndefined();
 
     const failing = fakeFetch([{ status: 403, body: { error: 'forbidden' } }]);
     await expect(
-      new GoogleCalendarProvider({ ...options, fetch: failing.fetch }).createEvent(tokens, 'primary', event),
+      new GoogleCalendarProvider({ ...options, fetch: failing.fetch }).createEvent(
+        tokens,
+        'primary',
+        event,
+      ),
     ).rejects.toBeInstanceOf(GoogleApiError);
   });
 });

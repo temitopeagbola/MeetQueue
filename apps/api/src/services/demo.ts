@@ -58,12 +58,37 @@ export const DEMO_MEETING_TYPES = [
 ] as const;
 
 const INVITEES = [
-  { name: 'Jordan Lee', email: 'jordan.lee@example.com', timezone: 'America/New_York', notes: 'Keen to talk about a booking flow for our clinic.' },
+  {
+    name: 'Jordan Lee',
+    email: 'jordan.lee@example.com',
+    timezone: 'America/New_York',
+    notes: 'Keen to talk about a booking flow for our clinic.',
+  },
   { name: 'Priya Shah', email: 'priya.shah@example.com', timezone: 'Asia/Kolkata', notes: null },
-  { name: 'Marcus Chen', email: 'marcus.chen@example.com', timezone: 'America/Los_Angeles', notes: 'Want a second opinion on our Postgres schema.' },
-  { name: 'Elena García', email: 'elena.garcia@example.com', timezone: 'Europe/Madrid', notes: null },
-  { name: 'Tomi Okafor', email: 'tomi.okafor@example.com', timezone: 'Africa/Lagos', notes: 'Intro from the meetup last week.' },
-  { name: 'Hannah Becker', email: 'hannah.becker@example.com', timezone: 'Europe/Berlin', notes: null },
+  {
+    name: 'Marcus Chen',
+    email: 'marcus.chen@example.com',
+    timezone: 'America/Los_Angeles',
+    notes: 'Want a second opinion on our Postgres schema.',
+  },
+  {
+    name: 'Elena García',
+    email: 'elena.garcia@example.com',
+    timezone: 'Europe/Madrid',
+    notes: null,
+  },
+  {
+    name: 'Tomi Okafor',
+    email: 'tomi.okafor@example.com',
+    timezone: 'Africa/Lagos',
+    notes: 'Intro from the meetup last week.',
+  },
+  {
+    name: 'Hannah Becker',
+    email: 'hannah.becker@example.com',
+    timezone: 'Europe/Berlin',
+    notes: null,
+  },
 ];
 
 const MIN_UPCOMING = 4;
@@ -138,7 +163,10 @@ export async function ensureDemoAccount(
       db.booking.deleteMany({ where: { hostId: host.id } }),
       db.meetingType.deleteMany({ where: { userId: host.id } }),
       db.availabilityRule.deleteMany({ where: { userId: host.id } }),
-      db.user.update({ where: { id: host.id }, data: { timezone: DEMO_TIMEZONE, name: 'Sam Rivera' } }),
+      db.user.update({
+        where: { id: host.id },
+        data: { timezone: DEMO_TIMEZONE, name: 'Sam Rivera' },
+      }),
     ]);
     host = { ...host, timezone: DEMO_TIMEZONE, name: 'Sam Rivera' };
   }
@@ -217,7 +245,13 @@ export async function ensureDemoAccount(
     for (const [index, day] of pastDays.entries()) {
       const weekday = day.weekday > 5 ? day.minus({ days: day.weekday - 5 }) : day;
       const start = weekday.set({ hour: 10 + index * 2 }).toJSDate();
-      await createSeedBooking(db, host, meetingTypes[index % meetingTypes.length]!, start, INVITEES[(index + 3) % INVITEES.length]!);
+      await createSeedBooking(
+        db,
+        host,
+        meetingTypes[index % meetingTypes.length]!,
+        start,
+        INVITEES[(index + 3) % INVITEES.length]!,
+      );
     }
     const cancelledStart = local.plus({ days: 2 }).set({ hour: 8 }).toJSDate();
     await createSeedBooking(db, host, meetingTypes[1]!, cancelledStart, INVITEES[5]!, {

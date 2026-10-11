@@ -23,7 +23,9 @@ import { toApiError, useApiQuery } from '@/lib/use-api';
 
 export default function MeetingTypesPage() {
   const { user } = useAuth();
-  const { data, error, reload, mutate } = useApiQuery<{ meetingTypes: MeetingTypeDTO[] }>('/api/meeting-types');
+  const { data, error, reload, mutate } = useApiQuery<{ meetingTypes: MeetingTypeDTO[] }>(
+    '/api/meeting-types',
+  );
   const [deleting, setDeleting] = useState<MeetingTypeDTO | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -33,14 +35,20 @@ export default function MeetingTypesPage() {
     setBusy(type.id);
     setToggleError(null);
     try {
-      const { meetingType } = await api<{ meetingType: MeetingTypeDTO }>(`/api/meeting-types/${type.id}`, {
-        method: 'PATCH',
-        body: { isActive: !type.isActive },
-      });
-      mutate((current) =>
-        current && {
-          meetingTypes: current.meetingTypes.map((t) => (t.id === type.id ? { ...t, ...meetingType } : t)),
+      const { meetingType } = await api<{ meetingType: MeetingTypeDTO }>(
+        `/api/meeting-types/${type.id}`,
+        {
+          method: 'PATCH',
+          body: { isActive: !type.isActive },
         },
+      );
+      mutate(
+        (current) =>
+          current && {
+            meetingTypes: current.meetingTypes.map((t) =>
+              t.id === type.id ? { ...t, ...meetingType } : t,
+            ),
+          },
       );
     } catch (err) {
       setToggleError(toApiError(err).message);
@@ -55,7 +63,10 @@ export default function MeetingTypesPage() {
     setDeleteError(null);
     try {
       await api(`/api/meeting-types/${deleting.id}`, { method: 'DELETE' });
-      mutate((current) => current && { meetingTypes: current.meetingTypes.filter((t) => t.id !== deleting.id) });
+      mutate(
+        (current) =>
+          current && { meetingTypes: current.meetingTypes.filter((t) => t.id !== deleting.id) },
+      );
       setDeleting(null);
     } catch (err) {
       setDeleteError(toApiError(err).message);
@@ -75,7 +86,11 @@ export default function MeetingTypesPage() {
           </ButtonLink>
         }
       />
-      {toggleError && <p role="alert" className="mb-4 text-sm font-medium text-red-600">{toggleError}</p>}
+      {toggleError && (
+        <p role="alert" className="mb-4 text-sm font-medium text-red-600">
+          {toggleError}
+        </p>
+      )}
       {error ? (
         <ErrorState message={error.message} onRetry={reload} />
       ) : !data ? (
@@ -85,7 +100,9 @@ export default function MeetingTypesPage() {
           icon={<LayoutList className="size-8" aria-hidden />}
           title="No meeting types yet"
           description="Create one to start taking bookings."
-          action={<ButtonLink href="/dashboard/meeting-types/new">Create a meeting type</ButtonLink>}
+          action={
+            <ButtonLink href="/dashboard/meeting-types/new">Create a meeting type</ButtonLink>
+          }
         />
       ) : (
         <ul className="grid gap-4 md:grid-cols-2">
@@ -123,15 +140,23 @@ export default function MeetingTypesPage() {
                       )}
                       <Badge>{formatNotice(type.minNoticeMinutes)}</Badge>
                       <Badge>Up to {type.maxDaysAhead} days ahead</Badge>
-                      {type.bookingCount ? <Badge tone="green">{type.bookingCount} booked</Badge> : null}
+                      {type.bookingCount ? (
+                        <Badge tone="green">{type.bookingCount} booked</Badge>
+                      ) : null}
                     </div>
-                    {type.description && <p className="line-clamp-2 text-sm text-slate-600">{type.description}</p>}
+                    {type.description && (
+                      <p className="line-clamp-2 text-sm text-slate-600">{type.description}</p>
+                    )}
                     <div className="mt-auto flex flex-wrap gap-2 pt-2">
                       <CopyButton value={siteUrl(path)} />
                       <ButtonLink href={path} target="_blank" variant="secondary" size="sm">
                         <ExternalLink className="size-3.5" aria-hidden /> Open
                       </ButtonLink>
-                      <ButtonLink href={`/dashboard/meeting-types/${type.id}`} variant="secondary" size="sm">
+                      <ButtonLink
+                        href={`/dashboard/meeting-types/${type.id}`}
+                        variant="secondary"
+                        size="sm"
+                      >
                         <Pencil className="size-3.5" aria-hidden /> Edit
                       </ButtonLink>
                       <Button

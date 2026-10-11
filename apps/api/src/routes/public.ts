@@ -34,11 +34,14 @@ export async function publicRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get('/users/:username/meeting-types/:slug', async (request): Promise<PublicMeetingTypePageDTO> => {
-    const { username, slug } = parseInput(pageParams, request.params);
-    const { host, meetingType } = await bookings.findBookingPage(username, slug);
-    return { host: toPublicHostDTO(host), meetingType: toPublicMeetingTypeDTO(meetingType) };
-  });
+  app.get(
+    '/users/:username/meeting-types/:slug',
+    async (request): Promise<PublicMeetingTypePageDTO> => {
+      const { username, slug } = parseInput(pageParams, request.params);
+      const { host, meetingType } = await bookings.findBookingPage(username, slug);
+      return { host: toPublicHostDTO(host), meetingType: toPublicMeetingTypeDTO(meetingType) };
+    },
+  );
 
   app.get('/users/:username/meeting-types/:slug/slots', async (request) => {
     const { username, slug } = parseInput(pageParams, request.params);

@@ -4,7 +4,10 @@ import { WakingBanner } from '@/components/waking-banner';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'MeetQueue · Scheduling without the back-and-forth', template: '%s · MeetQueue' },
+  title: {
+    default: 'MeetQueue · Scheduling without the back-and-forth',
+    template: '%s · MeetQueue',
+  },
   description:
     'Share a booking page, let people pick a time in their own timezone, and never get double-booked.',
 };

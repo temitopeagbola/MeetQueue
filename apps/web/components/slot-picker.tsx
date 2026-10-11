@@ -3,7 +3,15 @@
 import type { SlotsResponseDTO } from '@meetqueue/core';
 import { ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { addDays, addMonths, monthBounds, monthGrid, monthLabel, monthOf, todayIn } from '@/lib/calendar';
+import {
+  addDays,
+  addMonths,
+  monthBounds,
+  monthGrid,
+  monthLabel,
+  monthOf,
+  todayIn,
+} from '@/lib/calendar';
 import { formatLocalDate, formatTime } from '@/lib/format';
 import { useApiQuery } from '@/lib/use-api';
 import { TimezoneSelect } from './timezone-select';
@@ -90,7 +98,11 @@ export function SlotPicker({
             <thead>
               <tr>
                 {WEEKDAYS.map((day) => (
-                  <th key={day} scope="col" className="pb-1 text-xs font-medium uppercase text-slate-500">
+                  <th
+                    key={day}
+                    scope="col"
+                    className="pb-1 text-xs font-medium uppercase text-slate-500"
+                  >
                     {day}
                   </th>
                 ))}
@@ -138,7 +150,10 @@ export function SlotPicker({
         </div>
 
         <div className="mt-4 flex flex-col gap-1.5">
-          <label htmlFor="slot-timezone" className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+          <label
+            htmlFor="slot-timezone"
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-600"
+          >
             <Globe className="size-3.5" aria-hidden /> Times shown in
           </label>
           <TimezoneSelect id="slot-timezone" value={timezone} onChange={onTimezoneChange} />
@@ -162,8 +177,13 @@ export function SlotPicker({
         ) : (
           activeDate && (
             <div>
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">{formatLocalDate(activeDate)}</h3>
-              <ul className="grid max-h-96 grid-cols-2 gap-2 overflow-y-auto pr-1 md:grid-cols-1" aria-label="Available times">
+              <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                {formatLocalDate(activeDate)}
+              </h3>
+              <ul
+                className="grid max-h-96 grid-cols-2 gap-2 overflow-y-auto pr-1 md:grid-cols-1"
+                aria-label="Available times"
+              >
                 {activeSlots.map((slot) => (
                   <li key={slot}>
                     <button

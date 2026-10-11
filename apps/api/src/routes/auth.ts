@@ -26,7 +26,8 @@ export async function authRoutes(app: FastifyInstance) {
     });
     if (existing) {
       const fields: Record<string, string[]> = {};
-      if (existing.email === input.email) fields.email = ['An account with this email already exists'];
+      if (existing.email === input.email)
+        fields.email = ['An account with this email already exists'];
       if (existing.username === input.username) fields.username = ['That username is taken'];
       throw conflict('ACCOUNT_EXISTS', Object.values(fields)[0]![0]!, fields);
     }
@@ -56,7 +57,8 @@ export async function authRoutes(app: FastifyInstance) {
       await startSession(app, reply, user.id);
       return reply.status(201).send({ user: toUserDTO(user) });
     } catch (error) {
-      if (isUniqueViolation(error)) throw conflict('ACCOUNT_EXISTS', 'That email or username is taken.');
+      if (isUniqueViolation(error))
+        throw conflict('ACCOUNT_EXISTS', 'That email or username is taken.');
       throw error;
     }
   });
@@ -75,7 +77,10 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post('/demo', { config: authLimit }, async (_request, reply) => {
     if (!config.demoEnabled) throw notFound('The demo is disabled on this server.');
-    const user = await ensureDemoAccount(db, { encryptionKey: config.encryptionKey, now: app.deps.now() });
+    const user = await ensureDemoAccount(db, {
+      encryptionKey: config.encryptionKey,
+      now: app.deps.now(),
+    });
     await startSession(app, reply, user.id);
     return { user: toUserDTO(user) };
   });
@@ -83,7 +88,11 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/demo/reset', { preHandler: requireUser(app), config: authLimit }, async (request) => {
     const user = currentUser(request);
     if (!user.isDemo) throw new AppError(403, 'FORBIDDEN', 'Only the demo account can be reset.');
-    await ensureDemoAccount(db, { encryptionKey: config.encryptionKey, now: app.deps.now(), reset: true });
+    await ensureDemoAccount(db, {
+      encryptionKey: config.encryptionKey,
+      now: app.deps.now(),
+      reset: true,
+    });
     return { ok: true };
   });
 

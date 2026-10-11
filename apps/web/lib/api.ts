@@ -94,7 +94,11 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       } catch (error) {
         if (options.signal?.aborted) throw error;
         if (!idempotent || Date.now() - started > MAX_WAKE_MS) {
-          throw new ApiError(0, 'NETWORK', 'Could not reach the server. Check your connection and try again.');
+          throw new ApiError(
+            0,
+            'NETWORK',
+            'Could not reach the server. Check your connection and try again.',
+          );
         }
       }
       const canRetry = idempotent && Date.now() - started < MAX_WAKE_MS;

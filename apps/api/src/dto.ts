@@ -34,7 +34,9 @@ export const toMeetingTypeDTO = (m: MeetingType, bookingCount?: number): Meeting
   ...(bookingCount === undefined ? {} : { bookingCount }),
 });
 
-export const toPublicHostDTO = (u: Pick<User, 'name' | 'username' | 'timezone'>): PublicHostDTO => ({
+export const toPublicHostDTO = (
+  u: Pick<User, 'name' | 'username' | 'timezone'>,
+): PublicHostDTO => ({
   name: u.name,
   username: u.username,
   timezone: u.timezone,
@@ -65,7 +67,8 @@ export const toHostBookingDTO = (b: Booking & { meetingType: MeetingType }): Hos
     color: b.meetingType.color,
     durationMinutes: b.meetingType.durationMinutes,
   },
-  calendar: b.calendarProvider === 'google' || b.calendarProvider === 'mock' ? b.calendarProvider : 'none',
+  calendar:
+    b.calendarProvider === 'google' || b.calendarProvider === 'mock' ? b.calendarProvider : 'none',
   calendarEventId: b.calendarEventId,
   cancelledAt: b.cancelledAt?.toISOString() ?? null,
   cancelReason: b.cancelReason,

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { AppError, isExclusionViolation, isUniqueViolation, parseInput } from '../../src/lib/errors';
+import {
+  AppError,
+  isExclusionViolation,
+  isUniqueViolation,
+  parseInput,
+} from '../../src/lib/errors';
 
 describe('isExclusionViolation', () => {
   it('recognises the error shape Prisma + driver adapters produce for SQLSTATE 23P01', () => {
@@ -26,7 +31,9 @@ describe('isExclusionViolation', () => {
 
   it('recognises unique violations', () => {
     expect(isUniqueViolation({ code: 'P2002' })).toBe(true);
-    expect(isUniqueViolation({ meta: { driverAdapterError: { cause: { originalCode: '23505' } } } })).toBe(true);
+    expect(
+      isUniqueViolation({ meta: { driverAdapterError: { cause: { originalCode: '23505' } } } }),
+    ).toBe(true);
   });
 });
 
@@ -44,7 +51,10 @@ describe('parseInput', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(AppError);
       expect((error as AppError).statusCode).toBe(400);
-      expect((error as AppError).fields).toMatchObject({ name: ['Name is required'], age: expect.any(Array) });
+      expect((error as AppError).fields).toMatchObject({
+        name: ['Name is required'],
+        age: expect.any(Array),
+      });
     }
   });
 });

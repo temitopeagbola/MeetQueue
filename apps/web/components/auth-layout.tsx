@@ -2,7 +2,15 @@ import type { ReactNode } from 'react';
 import { Logo } from './logo';
 import { WarmUp } from './warm-up';
 
-export function AuthLayout({ title, subtitle, children }: { title: string; subtitle: ReactNode; children: ReactNode }) {
+export function AuthLayout({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-12">
       <WarmUp />

@@ -59,9 +59,12 @@ export async function integrationRoutes(app: FastifyInstance) {
     const expected = request.cookies[STATE_COOKIE];
     reply.clearCookie(STATE_COOKIE, { path: stateCookie.path });
     if (!query.success || query.data.error || !query.data.code) {
-      return reply.redirect(settingsUrl(query.success && query.data.error === 'access_denied' ? 'denied' : 'error'));
+      return reply.redirect(
+        settingsUrl(query.success && query.data.error === 'access_denied' ? 'denied' : 'error'),
+      );
     }
-    if (!expected || query.data.state !== expected) return reply.redirect(settingsUrl('state-mismatch'));
+    if (!expected || query.data.state !== expected)
+      return reply.redirect(settingsUrl('state-mismatch'));
     try {
       await calendar.connect(user, query.data.code);
       return reply.redirect(settingsUrl('connected'));

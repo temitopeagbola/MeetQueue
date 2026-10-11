@@ -60,11 +60,19 @@ export function SignupForm() {
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {formError && <Alert>{formError}</Alert>}
         <Field label="Your name" error={errors.name}>
-          {(props) => <Input {...props} autoComplete="name" value={form.name} onChange={set('name')} />}
+          {(props) => (
+            <Input {...props} autoComplete="name" value={form.name} onChange={set('name')} />
+          )}
         </Field>
         <Field label="Email" error={errors.email}>
           {(props) => (
-            <Input {...props} type="email" autoComplete="email" value={form.email} onChange={set('email')} />
+            <Input
+              {...props}
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={set('email')}
+            />
           )}
         </Field>
         <Field
@@ -86,11 +94,19 @@ export function SignupForm() {
         </Field>
         <Field label="Password" error={errors.password} hint="At least 8 characters.">
           {(props) => (
-            <Input {...props} type="password" autoComplete="new-password" value={form.password} onChange={set('password')} />
+            <Input
+              {...props}
+              type="password"
+              autoComplete="new-password"
+              value={form.password}
+              onChange={set('password')}
+            />
           )}
         </Field>
         <Field label="Your timezone" error={errors.timezone}>
-          {(props) => <TimezoneSelect {...props} value={effectiveTimezone} onChange={setTimezone} />}
+          {(props) => (
+            <TimezoneSelect {...props} value={effectiveTimezone} onChange={setTimezone} />
+          )}
         </Field>
         <Button type="submit" className="w-full" loading={submitting}>
           Create account

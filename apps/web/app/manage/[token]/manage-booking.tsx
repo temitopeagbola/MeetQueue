@@ -1,7 +1,14 @@
 'use client';
 
 import type { ManageBookingDTO } from '@meetqueue/core';
-import { ArrowLeft, CalendarClock, Download, Globe2, MapPin, MessageSquareText } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarClock,
+  Download,
+  Globe2,
+  MapPin,
+  MessageSquareText,
+} from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SlotPicker } from '@/components/slot-picker';
@@ -115,41 +122,67 @@ export function ManageBooking({ token }: { token: string }) {
           {booking.meetingType.title} with {booking.host.name}
         </h1>
         <div className="mt-4 space-y-2 text-sm text-slate-700">
-          <p className={`flex items-start gap-2 font-medium ${booking.status === 'CANCELLED' ? 'line-through' : ''}`}>
+          <p
+            className={`flex items-start gap-2 font-medium ${booking.status === 'CANCELLED' ? 'line-through' : ''}`}
+          >
             <CalendarClock className="mt-0.5 size-4 shrink-0 text-brand-600" aria-hidden />
-            {formatTime(booking.startsAt, tz)} – {formatTime(booking.endsAt, tz)}, {formatDayLong(booking.startsAt, tz)}
+            {formatTime(booking.startsAt, tz)} – {formatTime(booking.endsAt, tz)},{' '}
+            {formatDayLong(booking.startsAt, tz)}
           </p>
           <p className="flex items-center gap-2 text-slate-600">
             <Globe2 className="size-4 text-slate-400" aria-hidden /> {tz.replace(/_/g, ' ')}
           </p>
           {booking.meetingType.location && (
             <p className="flex items-center gap-2 text-slate-600">
-              <MapPin className="size-4 text-slate-400" aria-hidden /> {booking.meetingType.location}
+              <MapPin className="size-4 text-slate-400" aria-hidden />{' '}
+              {booking.meetingType.location}
             </p>
           )}
           {booking.notes && (
             <p className="flex items-start gap-2 text-slate-600">
-              <MessageSquareText className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden /> {booking.notes}
+              <MessageSquareText className="mt-0.5 size-4 shrink-0 text-slate-400" aria-hidden />{' '}
+              {booking.notes}
             </p>
           )}
-          <p className="text-slate-500">Booked by {booking.inviteeName} ({booking.inviteeEmail})</p>
-          {booking.cancelReason && <p className="text-slate-500">Cancellation reason: {booking.cancelReason}</p>}
+          <p className="text-slate-500">
+            Booked by {booking.inviteeName} ({booking.inviteeEmail})
+          </p>
+          {booking.cancelReason && (
+            <p className="text-slate-500">Cancellation reason: {booking.cancelReason}</p>
+          )}
         </div>
 
         {booking.status === 'CANCELLED' && (
           <div className="mt-6">
-            <ButtonLink href={`/${booking.host.username}/${booking.meetingType.slug}`}>Book a new time</ButtonLink>
+            <ButtonLink href={`/${booking.host.username}/${booking.meetingType.slug}`}>
+              Book a new time
+            </ButtonLink>
           </div>
         )}
         {booking.isPast && booking.status === 'CONFIRMED' && (
-          <p className="mt-6 text-sm text-slate-500">This meeting has already started or finished, so it can’t be changed.</p>
+          <p className="mt-6 text-sm text-slate-500">
+            This meeting has already started or finished, so it can’t be changed.
+          </p>
         )}
         {canChange && mode === 'view' && (
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-            <Button onClick={() => { setMode('reschedule'); setActionError(null); setNotice(null); }}>
+            <Button
+              onClick={() => {
+                setMode('reschedule');
+                setActionError(null);
+                setNotice(null);
+              }}
+            >
               Reschedule
             </Button>
-            <Button variant="secondary" onClick={() => { setCancelOpen(true); setActionError(null); setNotice(null); }}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCancelOpen(true);
+                setActionError(null);
+                setNotice(null);
+              }}
+            >
               Cancel booking
             </Button>
             <a href={`${base}/ics`} className={buttonClasses('ghost')} download>
@@ -163,7 +196,14 @@ export function ManageBooking({ token }: { token: string }) {
         <Card className="p-6">
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">Pick a new time</h2>
-            <Button variant="ghost" size="sm" onClick={() => { setMode('view'); setPending(null); }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setMode('view');
+                setPending(null);
+              }}
+            >
               <ArrowLeft className="size-4" aria-hidden /> Back
             </Button>
           </div>
@@ -172,7 +212,10 @@ export function ManageBooking({ token }: { token: string }) {
             key={pickerVersion}
             slotsUrl={`${base}/slots`}
             timezone={tz}
-            onTimezoneChange={(next) => { setTimezone(next); setPending(null); }}
+            onTimezoneChange={(next) => {
+              setTimezone(next);
+              setPending(null);
+            }}
             maxDaysAhead={booking.meetingType.maxDaysAhead}
             selected={pending}
             onSelect={setPending}
@@ -201,7 +244,14 @@ export function ManageBooking({ token }: { token: string }) {
         onClose={() => setCancelOpen(false)}
       >
         <Field label="Reason (optional)">
-          {(props) => <Textarea {...props} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />}
+          {(props) => (
+            <Textarea
+              {...props}
+              maxLength={500}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          )}
         </Field>
       </ConfirmDialog>
     </div>

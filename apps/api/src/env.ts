@@ -94,8 +94,7 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): AppConfig {
             mode: 'google',
             clientId: env.GOOGLE_CLIENT_ID!,
             clientSecret: env.GOOGLE_CLIENT_SECRET!,
-            redirectUri:
-              env.GOOGLE_REDIRECT_URI ?? `${webOrigin}/api/integrations/google/callback`,
+            redirectUri: env.GOOGLE_REDIRECT_URI ?? `${webOrigin}/api/integrations/google/callback`,
           }
         : { mode: 'mock' },
     email:

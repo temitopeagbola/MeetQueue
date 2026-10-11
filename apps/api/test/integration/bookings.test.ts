@@ -82,7 +82,11 @@ describe('public booking flow', () => {
 
   it('sends a confirmation with an ICS attachment and redacts the manage token in the log', async () => {
     await setupHost(ctx.app);
-    const response = await ctx.app.inject({ method: 'POST', url: bookUrl(), payload: bookingPayload(MONDAY_10) });
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: bookUrl(),
+      payload: bookingPayload(MONDAY_10),
+    });
     const { manageToken } = response.json();
 
     const invitee = ctx.email.sent.find((m) => m.to === 'grace@example.com')!;
@@ -109,7 +113,11 @@ describe('public booking flow', () => {
       '2026-12-14T10:00:00.000Z', // beyond the 30-day horizon
     ];
     for (const start of cases) {
-      const response = await ctx.app.inject({ method: 'POST', url: bookUrl(), payload: bookingPayload(start) });
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: bookUrl(),
+        payload: bookingPayload(start),
+      });
       expect(response.statusCode, start).toBe(409);
       expect(response.json().error.code).toBe('SLOT_UNAVAILABLE');
     }
@@ -123,7 +131,11 @@ describe('public booking flow', () => {
       payload: bookingPayload('tomorrow', { email: 'not-an-email', timezone: 'Mars/Base' }),
     });
     expect(response.statusCode).toBe(400);
-    expect(Object.keys(response.json().error.fields).sort()).toEqual(['email', 'start', 'timezone']);
+    expect(Object.keys(response.json().error.fields).sort()).toEqual([
+      'email',
+      'start',
+      'timezone',
+    ]);
   });
 
   it('returns 404 for unknown or inactive booking pages', async () => {
@@ -142,7 +154,11 @@ describe('public booking flow', () => {
 describe('double-booking protection', () => {
   it('refuses a second booking for the same slot', async () => {
     await setupHost(ctx.app);
-    const first = await ctx.app.inject({ method: 'POST', url: bookUrl(), payload: bookingPayload(MONDAY_10) });
+    const first = await ctx.app.inject({
+      method: 'POST',
+      url: bookUrl(),
+      payload: bookingPayload(MONDAY_10),
+    });
     const second = await ctx.app.inject({
       method: 'POST',
       url: bookUrl(),
@@ -201,15 +217,27 @@ describe('double-booking protection', () => {
   it('keeps different hosts independent', async () => {
     await setupHost(ctx.app, 'ada');
     await setupHost(ctx.app, 'bob');
-    const a = await ctx.app.inject({ method: 'POST', url: bookUrl('ada'), payload: bookingPayload(MONDAY_10) });
-    const b = await ctx.app.inject({ method: 'POST', url: bookUrl('bob'), payload: bookingPayload(MONDAY_10) });
+    const a = await ctx.app.inject({
+      method: 'POST',
+      url: bookUrl('ada'),
+      payload: bookingPayload(MONDAY_10),
+    });
+    const b = await ctx.app.inject({
+      method: 'POST',
+      url: bookUrl('bob'),
+      payload: bookingPayload(MONDAY_10),
+    });
     expect([a.statusCode, b.statusCode]).toEqual([201, 201]);
   });
 
   it('treats external calendar busy time as unavailable', async () => {
     const { cookie } = await setupHost(ctx.app);
     // Connect the (mock) calendar, then mark 13:00–14:00 busy in it.
-    const connect = await ctx.app.inject({ method: 'GET', url: '/api/integrations/google/connect', headers: { cookie } });
+    const connect = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/integrations/google/connect',
+      headers: { cookie },
+    });
     const callback = new URL(connect.headers.location as string);
     const state = connect.cookies.find((c) => c.name === 'mq_oauth_state')!.value;
     await ctx.app.inject({
@@ -217,7 +245,9 @@ describe('double-booking protection', () => {
       url: `${callback.pathname}${callback.search}`,
       headers: { cookie: `${cookie}; mq_oauth_state=${state}` },
     });
-    ctx.calendar.busyBlocks = [{ start: new Date('2026-10-12T13:00:00Z'), end: new Date('2026-10-12T14:00:00Z') }];
+    ctx.calendar.busyBlocks = [
+      { start: new Date('2026-10-12T13:00:00Z'), end: new Date('2026-10-12T14:00:00Z') },
+    ];
     const times = await slotTimes();
     expect(times).not.toContain('2026-10-12T13:00:00.000Z');
     expect(times).not.toContain('2026-10-12T12:30:00.000Z'); // after-buffer would overlap
@@ -228,7 +258,11 @@ describe('double-booking protection', () => {
 
 describe('manage links: reschedule, cancel, ICS', () => {
   async function book(start = MONDAY_10) {
-    const response = await ctx.app.inject({ method: 'POST', url: bookUrl(), payload: bookingPayload(start) });
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: bookUrl(),
+      payload: bookingPayload(start),
+    });
     expect(response.statusCode).toBe(201);
     return response.json().manageToken as string;
   }
@@ -237,7 +271,11 @@ describe('manage links: reschedule, cancel, ICS', () => {
     await setupHost(ctx.app);
     const token = await book();
     const ok = await ctx.app.inject({ method: 'GET', url: `/api/manage/${token}` });
-    expect(ok.json().booking).toMatchObject({ status: 'CONFIRMED', isPast: false, meetingType: { slug: 'consult' } });
+    expect(ok.json().booking).toMatchObject({
+      status: 'CONFIRMED',
+      isPast: false,
+      meetingType: { slug: 'consult' },
+    });
     const bad = await ctx.app.inject({ method: 'GET', url: `/api/manage/${'x'.repeat(43)}` });
     expect(bad.statusCode).toBe(404);
   });
@@ -250,7 +288,7 @@ describe('manage links: reschedule, cancel, ICS', () => {
       method: 'GET',
       url: `/api/manage/${token}/slots?start=2026-10-12&end=2026-10-12&timezone=UTC`,
     });
-    expect((options.json().days[0].slots as string[])).toContain('2026-10-12T10:30:00.000Z');
+    expect(options.json().days[0].slots as string[]).toContain('2026-10-12T10:30:00.000Z');
 
     const response = await ctx.app.inject({
       method: 'POST',
@@ -258,7 +296,10 @@ describe('manage links: reschedule, cancel, ICS', () => {
       payload: { start: '2026-10-12T10:30:00.000Z' },
     });
     expect(response.statusCode).toBe(200);
-    expect(response.json().booking).toMatchObject({ startsAt: '2026-10-12T10:30:00.000Z', rescheduleCount: 1 });
+    expect(response.json().booking).toMatchObject({
+      startsAt: '2026-10-12T10:30:00.000Z',
+      rescheduleCount: 1,
+    });
 
     const row = await ctx.db.booking.findFirstOrThrow();
     expect(row.icsSequence).toBe(1);
@@ -287,13 +328,22 @@ describe('manage links: reschedule, cancel, ICS', () => {
       url: `/api/manage/${token}/cancel`,
       payload: { reason: 'Conflict came up' },
     });
-    expect(response.json().booking).toMatchObject({ status: 'CANCELLED', cancelReason: 'Conflict came up' });
+    expect(response.json().booking).toMatchObject({
+      status: 'CANCELLED',
+      cancelReason: 'Conflict came up',
+    });
     expect(await slotTimes()).toContain(MONDAY_10);
 
-    const cancelEmail = ctx.email.sent.find((m) => m.subject.startsWith('Cancelled') && m.to === 'grace@example.com')!;
+    const cancelEmail = ctx.email.sent.find(
+      (m) => m.subject.startsWith('Cancelled') && m.to === 'grace@example.com',
+    )!;
     expect(cancelEmail.ics?.method).toBe('CANCEL');
 
-    const again = await ctx.app.inject({ method: 'POST', url: `/api/manage/${token}/cancel`, payload: {} });
+    const again = await ctx.app.inject({
+      method: 'POST',
+      url: `/api/manage/${token}/cancel`,
+      payload: {},
+    });
     expect(again.statusCode).toBe(409);
     expect(again.json().error.code).toBe('BOOKING_CANCELLED');
 
@@ -317,7 +367,11 @@ describe('manage links: reschedule, cancel, ICS', () => {
     const token = await book();
     ctx.clock.now = new Date('2026-10-12T10:05:00Z');
     try {
-      const response = await ctx.app.inject({ method: 'POST', url: `/api/manage/${token}/cancel`, payload: {} });
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: `/api/manage/${token}/cancel`,
+        payload: {},
+      });
       expect(response.statusCode).toBe(409);
       expect(response.json().error.code).toBe('BOOKING_IN_PAST');
     } finally {
@@ -330,7 +384,11 @@ describe('host dashboard bookings', () => {
   it('lists upcoming bookings with counts and lets the host cancel', async () => {
     const { cookie } = await setupHost(ctx.app);
     await ctx.app.inject({ method: 'POST', url: bookUrl(), payload: bookingPayload(MONDAY_10) });
-    const list = await ctx.app.inject({ method: 'GET', url: '/api/bookings?scope=upcoming', headers: { cookie } });
+    const list = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/bookings?scope=upcoming',
+      headers: { cookie },
+    });
     const { bookings, counts } = list.json();
     expect(counts).toEqual({ upcoming: 1, past: 0, cancelled: 0 });
     expect(bookings[0]).toMatchObject({ inviteeEmail: 'grace@example.com', calendar: 'none' });
@@ -347,9 +405,17 @@ describe('host dashboard bookings', () => {
   it('never exposes or cancels another host’s booking', async () => {
     await setupHost(ctx.app, 'ada');
     const bob = await setupHost(ctx.app, 'bob');
-    await ctx.app.inject({ method: 'POST', url: bookUrl('ada'), payload: bookingPayload(MONDAY_10) });
+    await ctx.app.inject({
+      method: 'POST',
+      url: bookUrl('ada'),
+      payload: bookingPayload(MONDAY_10),
+    });
     const adaBooking = await ctx.db.booking.findFirstOrThrow();
-    const list = await ctx.app.inject({ method: 'GET', url: '/api/bookings', headers: { cookie: bob.cookie } });
+    const list = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/bookings',
+      headers: { cookie: bob.cookie },
+    });
     expect(list.json().bookings).toHaveLength(0);
     const cancel = await ctx.app.inject({
       method: 'POST',

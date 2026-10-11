@@ -126,7 +126,12 @@ export function MeetingTypeForm({
   }
 
   const numberField = (
-    key: 'durationMinutes' | 'bufferBeforeMinutes' | 'bufferAfterMinutes' | 'maxDaysAhead' | 'minNoticeHours',
+    key:
+      | 'durationMinutes'
+      | 'bufferBeforeMinutes'
+      | 'bufferAfterMinutes'
+      | 'maxDaysAhead'
+      | 'minNoticeHours',
     label: string,
     hint: string,
     attrs: { min: number; max: number; step?: number },
@@ -163,7 +168,11 @@ export function MeetingTypeForm({
             />
           )}
         </Field>
-        <Field label="URL" hint={`/${username}/${values.slug || 'your-meeting'}`} error={errors.slug}>
+        <Field
+          label="URL"
+          hint={`/${username}/${values.slug || 'your-meeting'}`}
+          error={errors.slug}
+        >
           {(props) => (
             <Input
               {...props}
@@ -179,11 +188,27 @@ export function MeetingTypeForm({
         </Field>
         <Field label="Description" hint="Shown on the booking page." error={errors.description}>
           {(props) => (
-            <Textarea {...props} maxLength={500} value={values.description} onChange={(e) => set('description', e.target.value)} />
+            <Textarea
+              {...props}
+              maxLength={500}
+              value={values.description}
+              onChange={(e) => set('description', e.target.value)}
+            />
           )}
         </Field>
-        <Field label="Location" hint="e.g. Zoom, Google Meet, a phone number or an address." error={errors.location}>
-          {(props) => <Input {...props} maxLength={200} value={values.location} onChange={(e) => set('location', e.target.value)} />}
+        <Field
+          label="Location"
+          hint="e.g. Zoom, Google Meet, a phone number or an address."
+          error={errors.location}
+        >
+          {(props) => (
+            <Input
+              {...props}
+              maxLength={200}
+              value={values.location}
+              onChange={(e) => set('location', e.target.value)}
+            />
+          )}
         </Field>
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-slate-700">Colour</legend>
@@ -212,10 +237,22 @@ export function MeetingTypeForm({
       <Card className="space-y-5 p-5 sm:p-6">
         <h2 className="font-semibold">Scheduling rules</h2>
         <div className="grid gap-5 sm:grid-cols-2">
-          {numberField('durationMinutes', 'Duration (minutes)', 'Between 5 and 480.', { min: 5, max: 480, step: 5 })}
-          <Field label="Start times every" hint="Spacing between offered start times." error={errors.slotIntervalMinutes}>
+          {numberField('durationMinutes', 'Duration (minutes)', 'Between 5 and 480.', {
+            min: 5,
+            max: 480,
+            step: 5,
+          })}
+          <Field
+            label="Start times every"
+            hint="Spacing between offered start times."
+            error={errors.slotIntervalMinutes}
+          >
             {(props) => (
-              <Select {...props} value={values.slotIntervalMinutes} onChange={(e) => set('slotIntervalMinutes', e.target.value)}>
+              <Select
+                {...props}
+                value={values.slotIntervalMinutes}
+                onChange={(e) => set('slotIntervalMinutes', e.target.value)}
+              >
                 {INTERVALS.map((m) => (
                   <option key={m} value={m}>
                     {m} minutes
@@ -224,10 +261,28 @@ export function MeetingTypeForm({
               </Select>
             )}
           </Field>
-          {numberField('bufferBeforeMinutes', 'Buffer before (minutes)', 'Kept free before each meeting.', { min: 0, max: 240, step: 5 })}
-          {numberField('bufferAfterMinutes', 'Buffer after (minutes)', 'Kept free after each meeting.', { min: 0, max: 240, step: 5 })}
-          {numberField('minNoticeHours', 'Minimum notice (hours)', 'No bookings sooner than this.', { min: 0, max: 720, step: 0.5 })}
-          {numberField('maxDaysAhead', 'Book up to (days ahead)', 'How far into the future.', { min: 1, max: 365 })}
+          {numberField(
+            'bufferBeforeMinutes',
+            'Buffer before (minutes)',
+            'Kept free before each meeting.',
+            { min: 0, max: 240, step: 5 },
+          )}
+          {numberField(
+            'bufferAfterMinutes',
+            'Buffer after (minutes)',
+            'Kept free after each meeting.',
+            { min: 0, max: 240, step: 5 },
+          )}
+          {numberField(
+            'minNoticeHours',
+            'Minimum notice (hours)',
+            'No bookings sooner than this.',
+            { min: 0, max: 720, step: 0.5 },
+          )}
+          {numberField('maxDaysAhead', 'Book up to (days ahead)', 'How far into the future.', {
+            min: 1,
+            max: 365,
+          })}
         </div>
         <label className="flex items-center gap-3 text-sm font-medium">
           <input

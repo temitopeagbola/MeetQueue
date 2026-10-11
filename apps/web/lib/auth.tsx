@@ -45,5 +45,7 @@ export function RequireAuth({
 
   if (error && !unauthenticated) return renderError(error.message, reload);
   if (!data) return fallback;
-  return <AuthContext.Provider value={{ user: data.user, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user: data.user, logout }}>{children}</AuthContext.Provider>
+  );
 }

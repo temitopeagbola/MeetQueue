@@ -33,7 +33,13 @@ export function TimezoneSelect({
     ? all
     : [[value, hydrated ? timeZoneLabel(value) : value] as const, ...all];
   return (
-    <Select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={className} {...aria}>
+    <Select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={className}
+      {...aria}
+    >
       {zones.map(([zone, label]) => (
         <option key={zone} value={zone}>
           {label}

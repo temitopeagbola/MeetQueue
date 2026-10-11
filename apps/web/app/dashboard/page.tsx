@@ -66,7 +66,10 @@ export default function BookingsPage() {
     setSubmitting(true);
     setCancelError(null);
     try {
-      await api(`/api/bookings/${cancelling.id}/cancel`, { method: 'POST', body: { reason: reason || undefined } });
+      await api(`/api/bookings/${cancelling.id}/cancel`, {
+        method: 'POST',
+        body: { reason: reason || undefined },
+      });
       setCancelling(null);
       setReason('');
       reload();
@@ -102,7 +105,11 @@ export default function BookingsPage() {
         </div>
       </Card>
 
-      <div role="group" aria-label="Filter bookings" className="mb-4 flex gap-1 rounded-lg bg-slate-200/60 p-1 sm:w-fit">
+      <div
+        role="group"
+        aria-label="Filter bookings"
+        className="mb-4 flex gap-1 rounded-lg bg-slate-200/60 p-1 sm:w-fit"
+      >
         {tabs.map((tab) => (
           <button
             key={tab.scope}
@@ -111,11 +118,15 @@ export default function BookingsPage() {
             onClick={() => setScope(tab.scope)}
             className={cx(
               'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none',
-              scope === tab.scope ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900',
+              scope === tab.scope
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900',
             )}
           >
             {tab.label}
-            {data && <span className="ml-1.5 text-xs text-slate-500">{data.counts[tab.scope]}</span>}
+            {data && (
+              <span className="ml-1.5 text-xs text-slate-500">{data.counts[tab.scope]}</span>
+            )}
           </button>
         ))}
       </div>
@@ -157,14 +168,22 @@ export default function BookingsPage() {
                             style={{ backgroundColor: booking.meetingType.color }}
                             aria-hidden
                           />
-                          <p className={cx('text-sm font-semibold', booking.status === 'CANCELLED' && 'text-slate-400 line-through')}>
-                            {formatTime(booking.startsAt, user.timezone)} – {formatTime(booking.endsAt, user.timezone)}
+                          <p
+                            className={cx(
+                              'text-sm font-semibold',
+                              booking.status === 'CANCELLED' && 'text-slate-400 line-through',
+                            )}
+                          >
+                            {formatTime(booking.startsAt, user.timezone)} –{' '}
+                            {formatTime(booking.endsAt, user.timezone)}
                           </p>
                         </div>
                         <div className="min-w-0 flex-1 space-y-1.5">
                           <p className="font-medium text-slate-900">
                             {booking.inviteeName}{' '}
-                            <span className="font-normal text-slate-500">· {booking.meetingType.title}</span>
+                            <span className="font-normal text-slate-500">
+                              · {booking.meetingType.title}
+                            </span>
                           </p>
                           <p className="truncate text-sm text-slate-500">{booking.inviteeEmail}</p>
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -182,7 +201,10 @@ export default function BookingsPage() {
                           </div>
                           {booking.notes && (
                             <p className="flex gap-1.5 text-sm text-slate-600">
-                              <MessageSquareText className="mt-0.5 size-3.5 shrink-0 text-slate-400" aria-hidden />
+                              <MessageSquareText
+                                className="mt-0.5 size-3.5 shrink-0 text-slate-400"
+                                aria-hidden
+                              />
                               {booking.notes}
                             </p>
                           )}
@@ -232,7 +254,12 @@ export default function BookingsPage() {
       >
         <Field label="Reason (optional)">
           {(props) => (
-            <Textarea {...props} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
+            <Textarea
+              {...props}
+              maxLength={500}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
           )}
         </Field>
       </ConfirmDialog>

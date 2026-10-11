@@ -115,7 +115,11 @@ export class BookingService {
     query: SlotsQuery,
     exclude?: Booking,
   ): Promise<SlotsResponseDTO> {
-    const { rangeStart, rangeEnd } = localDateRangeToInstants(query.start, query.end, query.timezone);
+    const { rangeStart, rangeEnd } = localDateRangeToInstants(
+      query.start,
+      query.end,
+      query.timezone,
+    );
     const now = this.deps.now();
     const horizon = bookingHorizon(now, host.timezone, meetingType.maxDaysAhead);
     const from = Math.max(rangeStart.getTime(), now.getTime());
@@ -222,7 +226,8 @@ export class BookingService {
     const inviteSent = sync?.inviteSent ?? false;
     const confirmed = booking;
     await this.safely(
-      () => this.deps.notifier.bookingConfirmed(this.context(confirmed), { manageToken, inviteSent }),
+      () =>
+        this.deps.notifier.bookingConfirmed(this.context(confirmed), { manageToken, inviteSent }),
       'confirmation email',
     );
 

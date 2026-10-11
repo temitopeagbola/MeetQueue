@@ -10,7 +10,9 @@ import { useApiQuery } from '@/lib/use-api';
 export default function EditMeetingTypePage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { data, error, reload } = useApiQuery<{ meetingType: MeetingTypeDTO }>(`/api/meeting-types/${id}`);
+  const { data, error, reload } = useApiQuery<{ meetingType: MeetingTypeDTO }>(
+    `/api/meeting-types/${id}`,
+  );
 
   return (
     <div className="mx-auto max-w-3xl">

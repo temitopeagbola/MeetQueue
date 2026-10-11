@@ -69,9 +69,7 @@ describe('meetingTypeSchema', () => {
     });
     expect(parsed.isActive).toBe(true);
     expect(parsed.color).toBe('#4f46e5');
-    expect(
-      meetingTypeSchema.safeParse({ ...parsed, durationMinutes: 2 }).success,
-    ).toBe(false);
+    expect(meetingTypeSchema.safeParse({ ...parsed, durationMinutes: 2 }).success).toBe(false);
   });
 });
 

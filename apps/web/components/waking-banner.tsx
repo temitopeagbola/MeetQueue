@@ -6,7 +6,11 @@ import { wakeStore } from '@/lib/wake';
 
 /** Shown while an API request is slow, i.e. the sleeping free-tier backend is booting. */
 export function WakingBanner() {
-  const waking = useSyncExternalStore(wakeStore.subscribe, wakeStore.getSnapshot, wakeStore.getServerSnapshot);
+  const waking = useSyncExternalStore(
+    wakeStore.subscribe,
+    wakeStore.getSnapshot,
+    wakeStore.getServerSnapshot,
+  );
   return (
     <div
       role="status"

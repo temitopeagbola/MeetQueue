@@ -42,9 +42,11 @@ export function addDays(date: string, days: number): string {
 }
 
 export function monthLabel(month: MonthKey, locale?: string): string {
-  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(`${month}-15T00:00:00Z`),
-  );
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${month}-15T00:00:00Z`));
 }
 
 /** Weeks (Monday first) covering the month; days outside the month are null. */

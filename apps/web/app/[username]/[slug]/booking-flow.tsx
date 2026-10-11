@@ -29,13 +29,22 @@ import { fieldErrorsFrom, validate, type FieldErrors } from '@/lib/forms';
 import { guessTimeZone } from '@/lib/timezones';
 import { toApiError, useApiQuery } from '@/lib/use-api';
 
-function SlotSummary({ start, durationMinutes, timezone }: { start: string; durationMinutes: number; timezone: string }) {
+function SlotSummary({
+  start,
+  durationMinutes,
+  timezone,
+}: {
+  start: string;
+  durationMinutes: number;
+  timezone: string;
+}) {
   const end = new Date(new Date(start).getTime() + durationMinutes * 60_000).toISOString();
   return (
     <p className="flex items-start gap-2 text-sm font-medium text-slate-900">
       <CalendarCheck2 className="mt-0.5 size-4 shrink-0 text-brand-600" aria-hidden />
       <span>
-        {formatTime(start, timezone)} – {formatTime(end, timezone)}, {formatDayLong(start, timezone)}
+        {formatTime(start, timezone)} – {formatTime(end, timezone)},{' '}
+        {formatDayLong(start, timezone)}
       </span>
     </p>
   );
@@ -59,7 +68,11 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
       <EmptyState
         title="This booking page isn’t available"
         description="The link may be wrong, or the host has stopped taking bookings for this meeting."
-        action={<ButtonLink href={`/${username}`} variant="secondary">See other meeting types</ButtonLink>}
+        action={
+          <ButtonLink href={`/${username}`} variant="secondary">
+            See other meeting types
+          </ButtonLink>
+        }
       />
     );
   }
@@ -83,7 +96,12 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
     if (!result.data) return;
     setSubmitting(true);
     try {
-      setConfirmation(await api<BookingConfirmationDTO>(`${base}/bookings`, { method: 'POST', body: result.data }));
+      setConfirmation(
+        await api<BookingConfirmationDTO>(`${base}/bookings`, {
+          method: 'POST',
+          body: result.data,
+        }),
+      );
     } catch (err) {
       const error = toApiError(err);
       if (error.status === 409) {
@@ -106,16 +124,25 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
         <span className="mx-auto grid size-12 place-items-center rounded-full bg-emerald-100 text-emerald-700">
           <CalendarCheck2 className="size-6" aria-hidden />
         </span>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight" tabIndex={-1} ref={(el) => el?.focus()}>
+        <h1
+          className="mt-4 text-2xl font-semibold tracking-tight"
+          tabIndex={-1}
+          ref={(el) => el?.focus()}
+        >
           You’re booked!
         </h1>
         <p className="mt-2 text-slate-600">
           {meetingType.title} with {host.name}
         </p>
         <div className="mt-6 rounded-lg bg-slate-50 p-4 text-left">
-          <SlotSummary start={booking.startsAt} durationMinutes={meetingType.durationMinutes} timezone={booking.inviteeTimezone} />
+          <SlotSummary
+            start={booking.startsAt}
+            durationMinutes={meetingType.durationMinutes}
+            timezone={booking.inviteeTimezone}
+          />
           <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
-            <Globe2 className="size-4 text-slate-400" aria-hidden /> {booking.inviteeTimezone.replace(/_/g, ' ')}
+            <Globe2 className="size-4 text-slate-400" aria-hidden />{' '}
+            {booking.inviteeTimezone.replace(/_/g, ' ')}
           </p>
           {meetingType.location && (
             <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
@@ -129,14 +156,20 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
             : `A confirmation with a calendar invite (.ics) was sent to ${booking.inviteeEmail}.`}
         </p>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <a href={`/api/manage/${manageToken}/ics`} className={buttonClasses('secondary')} download>
+          <a
+            href={`/api/manage/${manageToken}/ics`}
+            className={buttonClasses('secondary')}
+            download
+          >
             <Download className="size-4" aria-hidden /> Add to calendar
           </a>
           <Link href={`/manage/${manageToken}`} className={buttonClasses('primary')}>
             Reschedule or cancel
           </Link>
         </div>
-        <p className="mt-4 text-xs text-slate-500">Keep the manage link private: anyone with it can change this booking.</p>
+        <p className="mt-4 text-xs text-slate-500">
+          Keep the manage link private: anyone with it can change this booking.
+        </p>
       </Card>
     );
   }
@@ -150,12 +183,15 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
             <Link href={`/${host.username}`} className="text-sm text-slate-500 hover:underline">
               {host.name}
             </Link>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">{meetingType.title}</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+              {meetingType.title}
+            </h1>
           </div>
         </div>
         <ul className="mt-5 space-y-2 text-sm text-slate-600">
           <li className="flex items-center gap-2">
-            <Clock3 className="size-4 text-slate-400" aria-hidden /> {formatDuration(meetingType.durationMinutes)}
+            <Clock3 className="size-4 text-slate-400" aria-hidden />{' '}
+            {formatDuration(meetingType.durationMinutes)}
           </li>
           {meetingType.location && (
             <li className="flex items-center gap-2">
@@ -163,17 +199,26 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
             </li>
           )}
         </ul>
-        {meetingType.description && <p className="mt-4 text-sm text-slate-600">{meetingType.description}</p>}
+        {meetingType.description && (
+          <p className="mt-4 text-sm text-slate-600">{meetingType.description}</p>
+        )}
         {step === 'details' && selected && (
           <div className="mt-6 rounded-lg bg-brand-50 p-3">
-            <SlotSummary start={selected} durationMinutes={meetingType.durationMinutes} timezone={timezone} />
+            <SlotSummary
+              start={selected}
+              durationMinutes={meetingType.durationMinutes}
+              timezone={timezone}
+            />
           </div>
         )}
       </aside>
 
       <section className="p-6" aria-label={step === 'pick' ? 'Choose a time' : 'Your details'}>
         {formError && (
-          <Alert className="mb-4" title={step === 'pick' ? 'Please choose another time' : undefined}>
+          <Alert
+            className="mb-4"
+            title={step === 'pick' ? 'Please choose another time' : undefined}
+          >
             {formError}
           </Alert>
         )}
@@ -205,10 +250,19 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
             <h2 className="text-lg font-semibold">Enter your details</h2>
             <Field label="Name" error={errors.name}>
               {(props) => (
-                <Input {...props} autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <Input
+                  {...props}
+                  autoComplete="name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
               )}
             </Field>
-            <Field label="Email" error={errors.email} hint="We’ll send the confirmation and calendar invite here.">
+            <Field
+              label="Email"
+              error={errors.email}
+              hint="We’ll send the confirmation and calendar invite here."
+            >
               {(props) => (
                 <Input
                   {...props}
@@ -221,7 +275,12 @@ export function BookingFlow({ username, slug }: { username: string; slug: string
             </Field>
             <Field label="Anything to share before the meeting? (optional)" error={errors.notes}>
               {(props) => (
-                <Textarea {...props} maxLength={1000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                <Textarea
+                  {...props}
+                  maxLength={1000}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                />
               )}
             </Field>
             <Button type="submit" size="lg" className="w-full sm:w-auto" loading={submitting}>

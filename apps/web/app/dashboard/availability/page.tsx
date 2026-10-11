@@ -51,7 +51,10 @@ function toDraft(dto: AvailabilityDTO): Draft {
   const days: Record<number, Interval[]> = {};
   for (const { weekday } of DAYS) days[weekday] = [];
   for (const rule of dto.rules) {
-    days[rule.weekday]!.push({ start: minutesToTime(rule.startMinute), end: endToInput(rule.endMinute) });
+    days[rule.weekday]!.push({
+      start: minutesToTime(rule.startMinute),
+      end: endToInput(rule.endMinute),
+    });
   }
   return { timezone: dto.timezone, days };
 }
@@ -70,7 +73,11 @@ function toPayload(draft: Draft) {
     rules: DAYS.flatMap(({ weekday }) =>
       (draft.days[weekday] ?? [])
         .filter((i) => i.start && i.end)
-        .map((i) => ({ weekday, startMinute: timeToMinutes(i.start), endMinute: endToMinutes(i.end) })),
+        .map((i) => ({
+          weekday,
+          startMinute: timeToMinutes(i.start),
+          endMinute: endToMinutes(i.end),
+        })),
     ),
   };
 }
@@ -104,16 +111,22 @@ export default function AvailabilityPage() {
         tone: 'error',
         message: invalid
           ? 'Each window must end after it starts.'
-          : Object.values(result.errors ?? {})[0] ?? 'Please fix the highlighted hours.',
+          : (Object.values(result.errors ?? {})[0] ?? 'Please fix the highlighted hours.'),
       });
       return;
     }
     setSaving(true);
     try {
-      const saved = await api<AvailabilityDTO>('/api/availability', { method: 'PUT', body: result.data });
+      const saved = await api<AvailabilityDTO>('/api/availability', {
+        method: 'PUT',
+        body: result.data,
+      });
       mutate(() => saved);
       setDraft(null);
-      setStatus({ tone: 'success', message: 'Availability saved. Your booking page is up to date.' });
+      setStatus({
+        tone: 'success',
+        message: 'Availability saved. Your booking page is up to date.',
+      });
     } catch (err) {
       setStatus({ tone: 'error', message: toApiError(err).message });
     } finally {
@@ -153,7 +166,10 @@ export default function AvailabilityPage() {
       )}
 
       <Card className="mb-6 p-4 sm:p-6">
-        <Field label="Timezone" hint="Your weekly hours are interpreted in this timezone, including daylight saving changes.">
+        <Field
+          label="Timezone"
+          hint="Your weekly hours are interpreted in this timezone, including daylight saving changes."
+        >
           {(props) => (
             <TimezoneSelect
               {...props}
@@ -170,22 +186,33 @@ export default function AvailabilityPage() {
           const intervals = current.days[weekday] ?? [];
           const enabled = intervals.length > 0;
           return (
-            <div key={weekday} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5">
+            <div
+              key={weekday}
+              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5"
+            >
               <label className="flex w-36 shrink-0 items-center gap-3 pt-2 text-sm font-medium">
                 <input
                   type="checkbox"
                   className="size-4 rounded border-slate-300 accent-brand-600"
                   checked={enabled}
-                  onChange={(e) => setDay(weekday, e.target.checked ? [{ start: '09:00', end: '17:00' }] : [])}
+                  onChange={(e) =>
+                    setDay(weekday, e.target.checked ? [{ start: '09:00', end: '17:00' }] : [])
+                  }
                 />
                 {name}
               </label>
               <div className="flex-1 space-y-2">
                 {!enabled && <p className="pt-2 text-sm text-slate-400">Unavailable</p>}
                 {intervals.map((interval, index) => {
-                  const bad = interval.start && interval.end && endToMinutes(interval.end) <= timeToMinutes(interval.start);
+                  const bad =
+                    interval.start &&
+                    interval.end &&
+                    endToMinutes(interval.end) <= timeToMinutes(interval.start);
                   const change = (patch: Partial<Interval>) =>
-                    setDay(weekday, intervals.map((i, j) => (j === index ? { ...i, ...patch } : i)));
+                    setDay(
+                      weekday,
+                      intervals.map((i, j) => (j === index ? { ...i, ...patch } : i)),
+                    );
                   return (
                     <div key={index} className="flex flex-wrap items-center gap-2">
                       <Input
@@ -213,11 +240,20 @@ export default function AvailabilityPage() {
                         variant="ghost"
                         size="sm"
                         aria-label={`Remove ${name} window ${index + 1}`}
-                        onClick={() => setDay(weekday, intervals.filter((_, j) => j !== index))}
+                        onClick={() =>
+                          setDay(
+                            weekday,
+                            intervals.filter((_, j) => j !== index),
+                          )
+                        }
                       >
                         <Trash2 className="size-4" aria-hidden />
                       </Button>
-                      {bad && <span className="text-xs font-medium text-red-600">Ends before it starts</span>}
+                      {bad && (
+                        <span className="text-xs font-medium text-red-600">
+                          Ends before it starts
+                        </span>
+                      )}
                     </div>
                   );
                 })}

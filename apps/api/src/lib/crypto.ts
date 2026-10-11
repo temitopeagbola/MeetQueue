@@ -9,7 +9,12 @@ import {
   type ScryptOptions,
 } from 'node:crypto';
 
-function scryptAsync(password: BinaryLike, salt: BinaryLike, keylen: number, options: ScryptOptions) {
+function scryptAsync(
+  password: BinaryLike,
+  salt: BinaryLike,
+  keylen: number,
+  options: ScryptOptions,
+) {
   return new Promise<Buffer>((resolve, reject) => {
     scrypt(password, salt, keylen, options, (err, key) => (err ? reject(err) : resolve(key)));
   });
@@ -36,9 +41,14 @@ export async function hashPassword(password: string): Promise<string> {
     r: SCRYPT.r,
     p: SCRYPT.p,
   });
-  return ['scrypt', SCRYPT.N, SCRYPT.r, SCRYPT.p, salt.toString('base64'), key.toString('base64')].join(
-    '$',
-  );
+  return [
+    'scrypt',
+    SCRYPT.N,
+    SCRYPT.r,
+    SCRYPT.p,
+    salt.toString('base64'),
+    key.toString('base64'),
+  ].join('$');
 }
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
@@ -73,7 +83,12 @@ export function createCipher(secret: string): Cipher {
       const cipher = createCipheriv('aes-256-gcm', key, iv);
       const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
       const tag = cipher.getAuthTag();
-      return ['v1', iv.toString('base64url'), tag.toString('base64url'), ciphertext.toString('base64url')].join('.');
+      return [
+        'v1',
+        iv.toString('base64url'),
+        tag.toString('base64url'),
+        ciphertext.toString('base64url'),
+      ].join('.');
     },
     decrypt(payload) {
       const [version, iv, tag, ciphertext] = payload.split('.');

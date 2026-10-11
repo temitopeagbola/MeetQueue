@@ -78,7 +78,11 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const availabilityRuleSchema = z
   .object({
     weekday: z.number().int().min(0).max(6),
-    startMinute: z.number().int().min(0).max(MINUTES_PER_DAY - 1),
+    startMinute: z
+      .number()
+      .int()
+      .min(0)
+      .max(MINUTES_PER_DAY - 1),
     endMinute: z.number().int().min(1).max(MINUTES_PER_DAY),
   })
   .refine((rule) => rule.endMinute > rule.startMinute, {
@@ -130,10 +134,10 @@ export const slotsQuerySchema = z
     timezone: timezoneSchema,
   })
   .refine((q) => q.end >= q.start, { error: 'end must not be before start', path: ['end'] })
-  .refine(
-    (q) => (Date.parse(q.end) - Date.parse(q.start)) / 86_400_000 < MAX_SLOT_QUERY_DAYS,
-    { error: `Query at most ${MAX_SLOT_QUERY_DAYS} days at a time`, path: ['end'] },
-  );
+  .refine((q) => (Date.parse(q.end) - Date.parse(q.start)) / 86_400_000 < MAX_SLOT_QUERY_DAYS, {
+    error: `Query at most ${MAX_SLOT_QUERY_DAYS} days at a time`,
+    path: ['end'],
+  });
 export type SlotsQuery = z.infer<typeof slotsQuerySchema>;
 
 export const bookingCreateSchema = z.object({

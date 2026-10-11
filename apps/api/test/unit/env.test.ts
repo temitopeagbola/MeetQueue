@@ -30,7 +30,12 @@ describe('loadConfig', () => {
   });
 
   it('lets CALENDAR_PROVIDER=mock override available credentials', () => {
-    const config = loadConfig({ ...base, GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 's', CALENDAR_PROVIDER: 'mock' });
+    const config = loadConfig({
+      ...base,
+      GOOGLE_CLIENT_ID: 'id',
+      GOOGLE_CLIENT_SECRET: 's',
+      CALENDAR_PROVIDER: 'mock',
+    });
     expect(config.calendar.mode).toBe('mock');
   });
 
@@ -42,7 +47,12 @@ describe('loadConfig', () => {
     expect(() => loadConfig({})).toThrow('DATABASE_URL');
     expect(() => loadConfig({ ...base, CALENDAR_PROVIDER: 'google' })).toThrow('GOOGLE_CLIENT_ID');
     expect(() =>
-      loadConfig({ ...base, NODE_ENV: 'production', GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 's' }),
+      loadConfig({
+        ...base,
+        NODE_ENV: 'production',
+        GOOGLE_CLIENT_ID: 'id',
+        GOOGLE_CLIENT_SECRET: 's',
+      }),
     ).toThrow('TOKEN_ENCRYPTION_KEY');
     expect(() => loadConfig({ ...base, EMAIL_PROVIDER: 'smtp' })).toThrow('SMTP_URL');
   });

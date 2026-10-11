@@ -65,7 +65,10 @@ export class Notifier {
       start: booking.startsAt,
       end: booking.endsAt,
       summary: `${meetingType.title}: ${booking.inviteeName} & ${host.name}`,
-      description: [booking.notes ? `Notes: ${booking.notes}` : '', manageUrl ? `Manage: ${manageUrl}` : '']
+      description: [
+        booking.notes ? `Notes: ${booking.notes}` : '',
+        manageUrl ? `Manage: ${manageUrl}` : '',
+      ]
         .filter(Boolean)
         .join('\n'),
       location: meetingType.location ?? undefined,
@@ -138,15 +141,23 @@ export class Notifier {
           label: 'Reschedule or cancel',
           url: manageUrl,
         }),
-        ics: opts.inviteSent ? undefined : { method: 'REQUEST', content: this.ics(ctx, 'REQUEST', manageUrl) },
+        ics: opts.inviteSent
+          ? undefined
+          : { method: 'REQUEST', content: this.ics(ctx, 'REQUEST', manageUrl) },
       },
       opts.manageToken,
     );
-    await this.notifyHost(ctx, 'HOST_BOOKING_CONFIRMED', `New booking: ${meetingType.title} with ${booking.inviteeName}`, [
-      `${booking.inviteeName} (${booking.inviteeEmail}) booked ${meetingType.title}.`,
-      `When: ${formatRangeInZone(booking.startsAt, booking.endsAt, host.timezone)}`,
-      booking.notes ? `Notes: ${booking.notes}` : '',
-    ], opts.inviteSent);
+    await this.notifyHost(
+      ctx,
+      'HOST_BOOKING_CONFIRMED',
+      `New booking: ${meetingType.title} with ${booking.inviteeName}`,
+      [
+        `${booking.inviteeName} (${booking.inviteeEmail}) booked ${meetingType.title}.`,
+        `When: ${formatRangeInZone(booking.startsAt, booking.endsAt, host.timezone)}`,
+        booking.notes ? `Notes: ${booking.notes}` : '',
+      ],
+      opts.inviteSent,
+    );
   }
 
   async bookingRescheduled(
@@ -176,15 +187,23 @@ export class Notifier {
           label: 'Manage booking',
           url: manageUrl,
         }),
-        ics: opts.inviteSent ? undefined : { method: 'REQUEST', content: this.ics(ctx, 'REQUEST', manageUrl) },
+        ics: opts.inviteSent
+          ? undefined
+          : { method: 'REQUEST', content: this.ics(ctx, 'REQUEST', manageUrl) },
       },
       opts.manageToken,
     );
-    await this.notifyHost(ctx, 'HOST_BOOKING_RESCHEDULED', `Rescheduled: ${meetingType.title} with ${booking.inviteeName}`, [
-      `${booking.inviteeName} moved their ${meetingType.title}.`,
-      `New time: ${formatRangeInZone(booking.startsAt, booking.endsAt, host.timezone)}`,
-      `Was: ${formatRangeInZone(opts.previousStart, opts.previousEnd, host.timezone)}`,
-    ], opts.inviteSent);
+    await this.notifyHost(
+      ctx,
+      'HOST_BOOKING_RESCHEDULED',
+      `Rescheduled: ${meetingType.title} with ${booking.inviteeName}`,
+      [
+        `${booking.inviteeName} moved their ${meetingType.title}.`,
+        `New time: ${formatRangeInZone(booking.startsAt, booking.endsAt, host.timezone)}`,
+        `Was: ${formatRangeInZone(opts.previousStart, opts.previousEnd, host.timezone)}`,
+      ],
+      opts.inviteSent,
+    );
   }
 
   async bookingCancelled(
@@ -207,10 +226,17 @@ export class Notifier {
       html: toHtml('Booking cancelled', lines),
       ics: opts.inviteSent ? undefined : { method: 'CANCEL', content: this.ics(ctx, 'CANCEL') },
     });
-    await this.notifyHost(ctx, 'HOST_BOOKING_CANCELLED', `Cancelled: ${meetingType.title} with ${booking.inviteeName}`, [
-      `${meetingType.title} with ${booking.inviteeName} on ${formatRangeInZone(booking.startsAt, booking.endsAt, host.timezone)} was cancelled by ${who}.`,
-      reason,
-    ], opts.inviteSent, 'CANCEL');
+    await this.notifyHost(
+      ctx,
+      'HOST_BOOKING_CANCELLED',
+      `Cancelled: ${meetingType.title} with ${booking.inviteeName}`,
+      [
+        `${meetingType.title} with ${booking.inviteeName} on ${formatRangeInZone(booking.startsAt, booking.endsAt, host.timezone)} was cancelled by ${who}.`,
+        reason,
+      ],
+      opts.inviteSent,
+      'CANCEL',
+    );
   }
 
   private async notifyHost(

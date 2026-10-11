@@ -239,7 +239,9 @@ describe('isSlotAvailable', () => {
   });
 
   it('rejects a start that is busy', () => {
-    const busy = [{ start: new Date('2026-10-12T09:30:00Z'), end: new Date('2026-10-12T10:00:00Z') }];
+    const busy = [
+      { start: new Date('2026-10-12T09:30:00Z'), end: new Date('2026-10-12T10:00:00Z') },
+    ];
     expect(isSlotAvailable({ ...input, busy }, new Date('2026-10-12T09:30:00Z'))).toBe(false);
   });
 });

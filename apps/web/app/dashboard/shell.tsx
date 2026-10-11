@@ -1,6 +1,15 @@
 'use client';
 
-import { CalendarDays, Clock3, ExternalLink, LayoutList, LogOut, Mail, Plug, RotateCcw } from 'lucide-react';
+import {
+  CalendarDays,
+  Clock3,
+  ExternalLink,
+  LayoutList,
+  LogOut,
+  Mail,
+  Plug,
+  RotateCcw,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
@@ -69,7 +78,9 @@ function Shell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const isActive = (href: string) =>
-    href === '/dashboard' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+    href === '/dashboard'
+      ? pathname === href
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <div className="min-h-dvh">

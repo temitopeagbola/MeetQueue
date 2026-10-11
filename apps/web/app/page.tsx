@@ -1,11 +1,4 @@
-import {
-  CalendarCheck2,
-  CalendarSync,
-  Clock3,
-  Globe2,
-  Link2,
-  ShieldCheck,
-} from 'lucide-react';
+import { CalendarCheck2, CalendarSync, Clock3, Globe2, Link2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { DemoButton } from '@/components/demo-button';
 import { Logo } from '@/components/logo';
@@ -46,9 +39,15 @@ const features = [
 ];
 
 const steps = [
-  ['Set your hours', 'Pick your timezone and weekly availability, then add meeting types with buffers.'],
+  [
+    'Set your hours',
+    'Pick your timezone and weekly availability, then add meeting types with buffers.',
+  ],
   ['Share your link', 'Send people to your page. They choose a slot shown in their own timezone.'],
-  ['Get booked', 'The booking lands in your calendar with an invite. Invitees can reschedule or cancel.'],
+  [
+    'Get booked',
+    'The booking lands in your calendar with an invite. Invitees can reschedule or cancel.',
+  ],
 ];
 
 export default function LandingPage() {
@@ -133,7 +132,9 @@ export default function LandingPage() {
                     <span
                       key={t}
                       className={`rounded-lg border py-2 text-center text-sm font-semibold ${
-                        i === 2 ? 'border-brand-600 bg-brand-600 text-white' : 'border-brand-200 text-brand-700'
+                        i === 2
+                          ? 'border-brand-600 bg-brand-600 text-white'
+                          : 'border-brand-200 text-brand-700'
                       }`}
                     >
                       {t}
@@ -184,7 +185,10 @@ export default function LandingPage() {
 
       <footer className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:justify-between">
         <p>Next.js · Fastify · Prisma · PostgreSQL · Google Calendar API</p>
-        <Link href="https://github.com/Isaacpyo/MeetQueue" className="font-medium hover:text-slate-900">
+        <Link
+          href="https://github.com/Isaacpyo/MeetQueue"
+          className="font-medium hover:text-slate-900"
+        >
           Source on GitHub
         </Link>
       </footer>

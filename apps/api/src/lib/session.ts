@@ -24,7 +24,11 @@ export async function startSession(app: FastifyInstance, reply: FastifyReply, us
   reply.setCookie(SESSION_COOKIE, token, { ...cookieOptions(app), expires: expiresAt });
 }
 
-export async function endSession(app: FastifyInstance, request: FastifyRequest, reply: FastifyReply) {
+export async function endSession(
+  app: FastifyInstance,
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
   const token = request.cookies[SESSION_COOKIE];
   if (token) await app.deps.db.session.deleteMany({ where: { tokenHash: sha256(token) } });
   reply.clearCookie(SESSION_COOKIE, cookieOptions(app));

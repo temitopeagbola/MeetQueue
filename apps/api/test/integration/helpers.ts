@@ -90,7 +90,10 @@ export async function signup(
     },
   });
   if (response.statusCode !== 201) throw new Error(`signup failed: ${response.body}`);
-  return { cookie: sessionCookie(response), user: response.json().user as { id: string; username: string } };
+  return {
+    cookie: sessionCookie(response),
+    user: response.json().user as { id: string; username: string },
+  };
 }
 
 /** A predictable host: UTC, Mon–Fri 09:00–17:00, one 30-minute type with 10/10 buffers. */
@@ -137,5 +140,11 @@ export function bookingPayload(start: string, overrides: Record<string, unknown>
 
 export const bookUrl = (username = 'ada', slug = 'consult') =>
   `/api/public/users/${username}/meeting-types/${slug}/bookings`;
-export const slotsUrl = (username = 'ada', slug = 'consult', start = '2026-10-12', end = '2026-10-12', timezone = 'UTC') =>
+export const slotsUrl = (
+  username = 'ada',
+  slug = 'consult',
+  start = '2026-10-12',
+  end = '2026-10-12',
+  timezone = 'UTC',
+) =>
   `/api/public/users/${username}/meeting-types/${slug}/slots?start=${start}&end=${end}&timezone=${encodeURIComponent(timezone)}`;

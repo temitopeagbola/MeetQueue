@@ -19,15 +19,15 @@ public site. Render's free tier sleeps, so the web client retries idempotent req
 
 ## Data model (Postgres via Prisma)
 
-| Table                 | Notes                                                                 |
-| --------------------- | --------------------------------------------------------------------- |
-| `users`               | host account, IANA timezone, public `username`, `is_demo` flag        |
-| `sessions`            | SHA-256 of a random cookie token, expiry                              |
-| `availability_rules`  | weekday + start/end minute in the host's timezone (several per day)  |
-| `meeting_types`       | duration, buffer before/after, min notice, booking horizon, interval |
-| `bookings`            | `starts_at/ends_at` plus `blocked_start/blocked_end` (= buffers)     |
-| `calendar_connections`| provider (`google`/`mock`), AES-256-GCM encrypted OAuth tokens        |
-| `email_logs`          | every notification sent/logged, manage-link tokens redacted          |
+| Table                  | Notes                                                                |
+| ---------------------- | -------------------------------------------------------------------- |
+| `users`                | host account, IANA timezone, public `username`, `is_demo` flag       |
+| `sessions`             | SHA-256 of a random cookie token, expiry                             |
+| `availability_rules`   | weekday + start/end minute in the host's timezone (several per day)  |
+| `meeting_types`        | duration, buffer before/after, min notice, booking horizon, interval |
+| `bookings`             | `starts_at/ends_at` plus `blocked_start/blocked_end` (= buffers)     |
+| `calendar_connections` | provider (`google`/`mock`), AES-256-GCM encrypted OAuth tokens       |
+| `email_logs`           | every notification sent/logged, manage-link tokens redacted          |
 
 **Double-booking guard** — a raw-SQL migration adds
 

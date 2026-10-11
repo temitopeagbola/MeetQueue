@@ -47,7 +47,11 @@ function postgresCode(error: unknown): string | undefined {
     for (const key of ['originalCode', 'code']) {
       const value = record[key];
       // SQLSTATEs are 5 chars; skip Prisma's own P1xxx–P6xxx codes.
-      if (typeof value === 'string' && /^[0-9A-Z]{5}$/.test(value) && !/^P[1-6]\d{3}$/.test(value)) {
+      if (
+        typeof value === 'string' &&
+        /^[0-9A-Z]{5}$/.test(value) &&
+        !/^P[1-6]\d{3}$/.test(value)
+      ) {
         return value;
       }
     }

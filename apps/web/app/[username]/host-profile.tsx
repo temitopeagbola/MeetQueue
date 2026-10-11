@@ -34,19 +34,27 @@ export function HostProfile({ username }: { username: string }) {
         </div>
       </div>
       {data.meetingTypes.length === 0 ? (
-        <EmptyState title="No meeting types available" description="This host isn’t taking bookings right now." />
+        <EmptyState
+          title="No meeting types available"
+          description="This host isn’t taking bookings right now."
+        />
       ) : (
         <ul className="space-y-3">
           {data.meetingTypes.map((type) => (
             <li key={type.slug}>
               <Link href={`/${data.host.username}/${type.slug}`} className="group block rounded-xl">
                 <Card className="flex items-center gap-4 overflow-hidden p-0 transition-shadow group-hover:shadow-md">
-                  <span className="w-1.5 self-stretch" style={{ backgroundColor: type.color }} aria-hidden />
+                  <span
+                    className="w-1.5 self-stretch"
+                    style={{ backgroundColor: type.color }}
+                    aria-hidden
+                  />
                   <div className="min-w-0 flex-1 py-4">
                     <h2 className="font-semibold text-slate-900">{type.title}</h2>
                     <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                       <span className="inline-flex items-center gap-1">
-                        <Clock3 className="size-3.5" aria-hidden /> {formatDuration(type.durationMinutes)}
+                        <Clock3 className="size-3.5" aria-hidden />{' '}
+                        {formatDuration(type.durationMinutes)}
                       </span>
                       {type.location && (
                         <span className="inline-flex items-center gap-1">
@@ -54,9 +62,14 @@ export function HostProfile({ username }: { username: string }) {
                         </span>
                       )}
                     </p>
-                    {type.description && <p className="mt-2 line-clamp-2 text-sm text-slate-600">{type.description}</p>}
+                    {type.description && (
+                      <p className="mt-2 line-clamp-2 text-sm text-slate-600">{type.description}</p>
+                    )}
                   </div>
-                  <ChevronRight className="mr-4 size-5 text-slate-400 group-hover:text-brand-600" aria-hidden />
+                  <ChevronRight
+                    className="mr-4 size-5 text-slate-400 group-hover:text-brand-600"
+                    aria-hidden
+                  />
                 </Card>
               </Link>
             </li>

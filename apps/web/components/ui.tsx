@@ -49,7 +49,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'primary', size = 'md', loading, disabled, className, children, type = 'button', ...props },
+  {
+    variant = 'primary',
+    size = 'md',
+    loading,
+    disabled,
+    className,
+    children,
+    type = 'button',
+    ...props
+  },
   ref,
 ) {
   return (
@@ -95,7 +104,11 @@ export function Field({
   hint?: ReactNode;
   error?: string;
   className?: string;
-  children: (props: { id: string; 'aria-invalid'?: boolean; 'aria-describedby'?: string }) => ReactNode;
+  children: (props: {
+    id: string;
+    'aria-invalid'?: boolean;
+    'aria-describedby'?: string;
+  }) => ReactNode;
 }) {
   const id = useId();
   const hintId = hint ? `${id}-hint` : undefined;
@@ -121,46 +134,67 @@ export function Field({
   );
 }
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
-  { className, ...props },
-  ref,
-) {
-  return (
-    <input
-      ref={ref}
-      className={cx(controlBase, 'h-10', width(className), controlState(!!props['aria-invalid']), className)}
-      {...props}
-    />
-  );
-});
-
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  function Textarea({ className, ...props }, ref) {
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+  function Input({ className, ...props }, ref) {
     return (
-      <textarea
+      <input
         ref={ref}
-        className={cx(controlBase, 'min-h-24 w-full py-2', controlState(!!props['aria-invalid']), className)}
+        className={cx(
+          controlBase,
+          'h-10',
+          width(className),
+          controlState(!!props['aria-invalid']),
+          className,
+        )}
         {...props}
       />
     );
   },
 );
 
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select(
-  { className, ...props },
-  ref,
-) {
+export const Textarea = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function Textarea({ className, ...props }, ref) {
   return (
-    <select
+    <textarea
       ref={ref}
-      className={cx(controlBase, 'h-10 pr-8', width(className), controlState(!!props['aria-invalid']), className)}
+      className={cx(
+        controlBase,
+        'min-h-24 w-full py-2',
+        controlState(!!props['aria-invalid']),
+        className,
+      )}
       {...props}
     />
   );
 });
 
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
+  function Select({ className, ...props }, ref) {
+    return (
+      <select
+        ref={ref}
+        className={cx(
+          controlBase,
+          'h-10 pr-8',
+          width(className),
+          controlState(!!props['aria-invalid']),
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
+
 export function Card({ className, ...props }: ComponentProps<'div'>) {
-  return <div className={cx('rounded-xl border border-slate-200 bg-white shadow-sm', className)} {...props} />;
+  return (
+    <div
+      className={cx('rounded-xl border border-slate-200 bg-white shadow-sm', className)}
+      {...props}
+    />
+  );
 }
 
 type Tone = 'neutral' | 'brand' | 'green' | 'amber' | 'red';
@@ -172,10 +206,18 @@ const tones: Record<Tone, string> = {
   red: 'bg-red-50 text-red-700 ring-red-200',
 };
 
-export function Badge({ tone = 'neutral', className, ...props }: ComponentProps<'span'> & { tone?: Tone }) {
+export function Badge({
+  tone = 'neutral',
+  className,
+  ...props
+}: ComponentProps<'span'> & { tone?: Tone }) {
   return (
     <span
-      className={cx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset', tones[tone], className)}
+      className={cx(
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset',
+        tones[tone],
+        className,
+      )}
       {...props}
     />
   );
@@ -183,7 +225,10 @@ export function Badge({ tone = 'neutral', className, ...props }: ComponentProps<
 
 export function Spinner({ label = 'Loading', className }: { label?: string; className?: string }) {
   return (
-    <span role="status" className={cx('inline-flex items-center gap-2 text-sm text-slate-500', className)}>
+    <span
+      role="status"
+      className={cx('inline-flex items-center gap-2 text-sm text-slate-500', className)}
+    >
       <Loader2 className="size-5 animate-spin text-brand-600" aria-hidden />
       <span>{label}…</span>
     </span>

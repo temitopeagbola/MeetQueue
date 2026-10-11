@@ -22,7 +22,15 @@ describe('calendar helpers', () => {
 
   it('lays out a Monday-first grid', () => {
     const weeks = monthGrid('2026-10'); // 1 Oct 2026 is a Thursday
-    expect(weeks[0]).toEqual([null, null, null, '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04']);
+    expect(weeks[0]).toEqual([
+      null,
+      null,
+      null,
+      '2026-10-01',
+      '2026-10-02',
+      '2026-10-03',
+      '2026-10-04',
+    ]);
     expect(weeks.every((w) => w.length === 7)).toBe(true);
     expect(weeks.flat().filter(Boolean)).toHaveLength(31);
   });

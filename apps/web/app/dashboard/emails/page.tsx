@@ -2,7 +2,15 @@
 
 import type { EmailLogDTO } from '@meetqueue/core';
 import { Inbox, Paperclip, RefreshCw } from 'lucide-react';
-import { Badge, Button, Card, EmptyState, ErrorState, LoadingBlock, PageHeader } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingBlock,
+  PageHeader,
+} from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useApiQuery } from '@/lib/use-api';
 
@@ -66,8 +74,12 @@ export default function EmailsPage() {
                     </div>
                   </summary>
                   <div className="border-t border-slate-100 p-4">
-                    {email.error && <p className="mb-2 text-sm text-red-600">Error: {email.error}</p>}
-                    <pre className="whitespace-pre-wrap break-words font-sans text-sm text-slate-700">{email.bodyText}</pre>
+                    {email.error && (
+                      <p className="mb-2 text-sm text-red-600">Error: {email.error}</p>
+                    )}
+                    <pre className="whitespace-pre-wrap break-words font-sans text-sm text-slate-700">
+                      {email.bodyText}
+                    </pre>
                   </div>
                 </details>
               </Card>

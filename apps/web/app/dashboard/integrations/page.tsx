@@ -21,7 +21,10 @@ import { toApiError, useApiQuery } from '@/lib/use-api';
 const CALLBACK_MESSAGES: Record<string, { tone: 'success' | 'error'; text: string }> = {
   connected: { tone: 'success', text: 'Calendar connected. New bookings will be added to it.' },
   denied: { tone: 'error', text: 'Google access was not granted, so nothing was connected.' },
-  'state-mismatch': { tone: 'error', text: 'That sign-in link expired or was tampered with. Please try again.' },
+  'state-mismatch': {
+    tone: 'error',
+    text: 'That sign-in link expired or was tampered with. Please try again.',
+  },
   error: { tone: 'error', text: 'Connecting the calendar failed. Please try again.' },
 };
 
@@ -45,8 +48,12 @@ export default function IntegrationsPage() {
     setActionError(null);
     try {
       await api('/api/integrations/calendar', { method: 'DELETE' });
-      mutate((current) =>
-        current && { ...current, calendar: { ...current.calendar, connected: false, provider: null, accountEmail: null } },
+      mutate(
+        (current) =>
+          current && {
+            ...current,
+            calendar: { ...current.calendar, connected: false, provider: null, accountEmail: null },
+          },
       );
     } catch (err) {
       setActionError(toApiError(err).message);
@@ -75,7 +82,8 @@ export default function IntegrationsPage() {
               <div className="min-w-0">
                 <h2 className="font-semibold">Google Calendar</h2>
                 <p className="text-sm text-slate-500">
-                  Checks your free/busy time and creates an event (with an invite) for every booking.
+                  Checks your free/busy time and creates an event (with an invite) for every
+                  booking.
                 </p>
               </div>
             </div>
@@ -99,7 +107,11 @@ export default function IntegrationsPage() {
                 can connect.
               </p>
             )}
-            {actionError && <p role="alert" className="text-sm font-medium text-red-600">{actionError}</p>}
+            {actionError && (
+              <p role="alert" className="text-sm font-medium text-red-600">
+                {actionError}
+              </p>
+            )}
             <div className="mt-auto flex flex-wrap gap-2">
               {/* Must be a full page navigation, not <Link>: this API route redirects to Google's
                   consent screen (or straight back, for the mock provider). */}

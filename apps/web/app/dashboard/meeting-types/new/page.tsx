@@ -8,7 +8,10 @@ export default function NewMeetingTypePage() {
   const { user } = useAuth();
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="New meeting type" description="Set how long it is and when it can be booked." />
+      <PageHeader
+        title="New meeting type"
+        description="Set how long it is and when it can be booked."
+      />
       <MeetingTypeForm initial={emptyMeetingType} username={user.username} />
     </div>
   );

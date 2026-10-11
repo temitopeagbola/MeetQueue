@@ -22,7 +22,9 @@ test('demo host → public booking → manage link → cancel', async ({ page },
 
   await expect(page.getByRole('heading', { name: 'You’re booked!' })).toBeVisible();
   await expect(page.getByText(`was sent to ${email}`)).toBeVisible();
-  const manageHref = await page.getByRole('link', { name: 'Reschedule or cancel' }).getAttribute('href');
+  const manageHref = await page
+    .getByRole('link', { name: 'Reschedule or cancel' })
+    .getAttribute('href');
   expect(manageHref).toMatch(/^\/manage\/[\w-]{40,}$/);
 
   // 3. The host sees it on the dashboard, synced to the (mock) calendar.

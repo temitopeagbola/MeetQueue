@@ -57,7 +57,8 @@ export function timeZoneLabel(timeZone: string, at = new Date()): string {
 
 export function formatNotice(minutes: number): string {
   if (minutes === 0) return 'No minimum notice';
-  if (minutes % (60 * 24) === 0) return `${minutes / (60 * 24)} day${minutes === 1440 ? '' : 's'} notice`;
+  if (minutes % (60 * 24) === 0)
+    return `${minutes / (60 * 24)} day${minutes === 1440 ? '' : 's'} notice`;
   if (minutes % 60 === 0) return `${minutes / 60} hr notice`;
   return `${minutes} min notice`;
 }

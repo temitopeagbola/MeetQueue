@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, formatLocalDate, formatNotice, formatRange, formatTime, timeZoneLabel } from '@/lib/format';
+import {
+  formatDuration,
+  formatLocalDate,
+  formatNotice,
+  formatRange,
+  formatTime,
+  timeZoneLabel,
+} from '@/lib/format';
 
 describe('format helpers', () => {
   it('renders the same instant in different timezones', () => {
@@ -27,7 +34,9 @@ describe('format helpers', () => {
   });
 
   it('labels timezones with their current offset', () => {
-    expect(timeZoneLabel('America/New_York', new Date('2026-07-01T00:00:00Z'))).toBe('America/New York (GMT-4)');
+    expect(timeZoneLabel('America/New_York', new Date('2026-07-01T00:00:00Z'))).toBe(
+      'America/New York (GMT-4)',
+    );
     expect(timeZoneLabel('Not/AZone')).toBe('Not/AZone');
   });
 });

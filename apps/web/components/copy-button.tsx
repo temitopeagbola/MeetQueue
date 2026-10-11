@@ -20,7 +20,11 @@ export function CopyButton({ value, label = 'Copy link' }: { value: string; labe
         }
       }}
     >
-      {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+      {copied ? (
+        <Check className="size-3.5" aria-hidden />
+      ) : (
+        <Copy className="size-3.5" aria-hidden />
+      )}
       <span aria-live="polite">{copied ? 'Copied' : label}</span>
     </Button>
   );

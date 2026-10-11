@@ -26,11 +26,21 @@ describe('api client', () => {
 
   it('surfaces API errors with code and field messages', async () => {
     fetchMock.mockResolvedValueOnce(
-      json(400, { error: { code: 'BAD_REQUEST', message: 'Name is required', fields: { name: ['Name is required'] } } }),
+      json(400, {
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Name is required',
+          fields: { name: ['Name is required'] },
+        },
+      }),
     );
     const error = await api('/api/x').catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({ status: 400, code: 'BAD_REQUEST', fields: { name: ['Name is required'] } });
+    expect(error).toMatchObject({
+      status: 400,
+      code: 'BAD_REQUEST',
+      fields: { name: ['Name is required'] },
+    });
   });
 
   it('retries GETs through a cold start and shows the waking banner meanwhile', async () => {
@@ -54,7 +64,9 @@ describe('api client', () => {
     fetchMock
       .mockResolvedValueOnce(json(200, { ok: true })) // health check
       .mockResolvedValueOnce(json(502, {})); // the POST
-    const promise = api('/api/bookings', { method: 'POST', body: { a: 1 } }).catch((e: unknown) => e);
+    const promise = api('/api/bookings', { method: 'POST', body: { a: 1 } }).catch(
+      (e: unknown) => e,
+    );
     await vi.advanceTimersByTimeAsync(1_000);
     const error = await promise;
 
@@ -67,7 +79,9 @@ describe('api client', () => {
   });
 
   it('skips the warm-up ping when the server answered recently', async () => {
-    fetchMock.mockResolvedValueOnce(json(200, { ok: true })).mockResolvedValueOnce(json(201, { id: 1 }));
+    fetchMock
+      .mockResolvedValueOnce(json(200, { ok: true }))
+      .mockResolvedValueOnce(json(201, { id: 1 }));
     await api('/api/anything');
     await api('/api/things', { method: 'POST' });
     expect(fetchMock).toHaveBeenCalledTimes(2);
