@@ -9,6 +9,8 @@ import { useApiQuery } from './use-api';
 interface AuthContextValue {
   user: UserDTO;
   logout(): Promise<void>;
+  /** Re-reads the session user (e.g. after the host changes their timezone). */
+  refresh(): void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -46,6 +48,8 @@ export function RequireAuth({
   if (error && !unauthenticated) return renderError(error.message, reload);
   if (!data) return fallback;
   return (
-    <AuthContext.Provider value={{ user: data.user, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user: data.user, logout, refresh: reload }}>
+      {children}
+    </AuthContext.Provider>
   );
 }

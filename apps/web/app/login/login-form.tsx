@@ -9,12 +9,8 @@ import { DemoButton } from '@/components/demo-button';
 import { Alert, Button, Field, Input } from '@/components/ui';
 import { api } from '@/lib/api';
 import { validate, type FieldErrors } from '@/lib/forms';
+import { safeNext } from '@/lib/safe-next';
 import { toApiError } from '@/lib/use-api';
-
-/** Only allow same-site relative redirects after login. */
-function safeNext(value: string | null) {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard';
-}
 
 export function LoginForm() {
   const router = useRouter();
@@ -33,7 +29,7 @@ export function LoginForm() {
     setSubmitting(true);
     try {
       await api('/api/auth/login', { method: 'POST', body: result.data });
-      router.push(safeNext(params.get('next')));
+      router.push(safeNext(params.get('next'), window.location.origin));
     } catch (error) {
       setFormError(toApiError(error).message);
       setSubmitting(false);

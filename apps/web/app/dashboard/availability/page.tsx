@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  availabilityUpdateSchema,
-  minutesToTime,
-  timeToMinutes,
-  type AvailabilityDTO,
-} from '@meetqueue/core';
+import { availabilityUpdateSchema, minutesToTime, type AvailabilityDTO } from '@meetqueue/core';
 import { Copy, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { TimezoneSelect } from '@/components/timezone-select';
@@ -21,6 +16,15 @@ import {
   PageHeader,
 } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import {
+  endToInput,
+  endToMinutes,
+  intervalProblem,
+  nextInterval,
+  startToMinutes,
+  type Interval,
+} from '@/lib/availability-draft';
 import { validate } from '@/lib/forms';
 import { toApiError, useApiQuery } from '@/lib/use-api';
 
@@ -34,18 +38,10 @@ const DAYS = [
   { weekday: 0, name: 'Sunday' },
 ];
 
-interface Interval {
-  start: string;
-  end: string;
-}
 interface Draft {
   timezone: string;
   days: Record<number, Interval[]>;
 }
-
-/** <input type="time"> can't say 24:00, so an end of 00:00 means midnight. */
-const endToMinutes = (value: string) => (value === '00:00' ? 1440 : timeToMinutes(value));
-const endToInput = (minutes: number) => (minutes === 1440 ? '00:00' : minutesToTime(minutes));
 
 function toDraft(dto: AvailabilityDTO): Draft {
   const days: Record<number, Interval[]> = {};
@@ -59,30 +55,22 @@ function toDraft(dto: AvailabilityDTO): Draft {
   return { timezone: dto.timezone, days };
 }
 
-/** A new window right after the last one (two hours, capped at midnight). */
-function nextInterval(last?: Interval): Interval | null {
-  if (!last) return { start: '09:00', end: '17:00' };
-  const start = endToMinutes(last.end);
-  if (start > 1440 - 15) return null;
-  return { start: minutesToTime(start), end: endToInput(Math.min(start + 120, 1440)) };
-}
-
 function toPayload(draft: Draft) {
   return {
     timezone: draft.timezone,
     rules: DAYS.flatMap(({ weekday }) =>
-      (draft.days[weekday] ?? [])
-        .filter((i) => i.start && i.end)
-        .map((i) => ({
-          weekday,
-          startMinute: timeToMinutes(i.start),
-          endMinute: endToMinutes(i.end),
-        })),
+      // Only called once every interval passed intervalProblem().
+      (draft.days[weekday] ?? []).map((i) => ({
+        weekday,
+        startMinute: startToMinutes(i.start)!,
+        endMinute: endToMinutes(i.end)!,
+      })),
     ),
   };
 }
 
 export default function AvailabilityPage() {
+  const { refresh: refreshUser } = useAuth();
   const { data, error, reload, mutate } = useApiQuery<AvailabilityDTO>('/api/availability');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -101,17 +89,21 @@ export default function AvailabilityPage() {
     update({ ...current, days: { ...current.days, [weekday]: intervals } });
 
   async function save() {
-    const payload = toPayload(current);
     const invalid = DAYS.some(({ weekday }) =>
-      (current.days[weekday] ?? []).some((i) => endToMinutes(i.end) <= timeToMinutes(i.start)),
+      (current.days[weekday] ?? []).some((i) => intervalProblem(i) !== null),
     );
-    const result = validate(availabilityUpdateSchema, payload);
-    if (invalid || !result.data) {
+    if (invalid) {
       setStatus({
         tone: 'error',
-        message: invalid
-          ? 'Each window must end after it starts.'
-          : (Object.values(result.errors ?? {})[0] ?? 'Please fix the highlighted hours.'),
+        message: 'Fix the highlighted hours: each window needs a start and an end, in order.',
+      });
+      return;
+    }
+    const result = validate(availabilityUpdateSchema, toPayload(current));
+    if (!result.data) {
+      setStatus({
+        tone: 'error',
+        message: Object.values(result.errors ?? {})[0] ?? 'Please fix the highlighted hours.',
       });
       return;
     }
@@ -123,6 +115,8 @@ export default function AvailabilityPage() {
       });
       mutate(() => saved);
       setDraft(null);
+      // The dashboard renders times in the host's timezone, which may just have changed.
+      refreshUser();
       setStatus({
         tone: 'success',
         message: 'Availability saved. Your booking page is up to date.',
@@ -204,10 +198,8 @@ export default function AvailabilityPage() {
               <div className="flex-1 space-y-2">
                 {!enabled && <p className="pt-2 text-sm text-slate-400">Unavailable</p>}
                 {intervals.map((interval, index) => {
-                  const bad =
-                    interval.start &&
-                    interval.end &&
-                    endToMinutes(interval.end) <= timeToMinutes(interval.start);
+                  const problem = intervalProblem(interval);
+                  const bad = problem !== null;
                   const change = (patch: Partial<Interval>) =>
                     setDay(
                       weekday,
@@ -249,10 +241,8 @@ export default function AvailabilityPage() {
                       >
                         <Trash2 className="size-4" aria-hidden />
                       </Button>
-                      {bad && (
-                        <span className="text-xs font-medium text-red-600">
-                          Ends before it starts
-                        </span>
+                      {problem && (
+                        <span className="text-xs font-medium text-red-600">{problem}</span>
                       )}
                     </div>
                   );
