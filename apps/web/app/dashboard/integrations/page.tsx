@@ -52,7 +52,13 @@ export default function IntegrationsPage() {
         (current) =>
           current && {
             ...current,
-            calendar: { ...current.calendar, connected: false, provider: null, accountEmail: null },
+            calendar: {
+              ...current.calendar,
+              connected: false,
+              provider: null,
+              accountEmail: null,
+              error: null,
+            },
           },
       );
     } catch (err) {
@@ -89,7 +95,11 @@ export default function IntegrationsPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {data.calendar.connected ? (
-                <Badge tone="green">Connected</Badge>
+                data.calendar.error ? (
+                  <Badge tone="red">Needs attention</Badge>
+                ) : (
+                  <Badge tone="green">Connected</Badge>
+                )
               ) : (
                 <Badge>Not connected</Badge>
               )}
@@ -100,6 +110,12 @@ export default function IntegrationsPage() {
                 <span className="truncate text-slate-600">{data.calendar.accountEmail}</span>
               )}
             </div>
+            {data.calendar.connected && data.calendar.error && (
+              <Alert title="Calendar sync is failing">
+                {data.calendar.error} Until then, bookings still work and invitees get .ics
+                invitations by email.
+              </Alert>
+            )}
             {data.calendar.restriction && <Alert tone="info">{data.calendar.restriction}</Alert>}
             {data.calendar.mode === 'google' && !data.calendar.restriction && (
               <p className="text-xs text-slate-500">

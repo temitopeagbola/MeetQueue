@@ -144,6 +144,9 @@ model CalendarConnection {
   refreshTokenEnc String?   @map("refresh_token_enc")
   tokenExpiresAt  DateTime? @map("token_expires_at") @db.Timestamptz(3)
   calendarId      String    @default("primary") @map("calendar_id")
+  /// Last sync failure (e.g. expired or revoked Google access); cleared after a success
+  lastError       String?   @map("last_error")
+  lastErrorAt     DateTime? @map("last_error_at") @db.Timestamptz(3)
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 

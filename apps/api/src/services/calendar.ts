@@ -2,6 +2,7 @@ import type { TimeRange } from '@meetqueue/core';
 import type { Db } from '../db';
 import type { Cipher } from '../lib/crypto';
 import type { Logger } from '../lib/logger';
+import { GoogleApiError } from '../providers/calendar/google';
 import type {
   CalendarEventInput,
   CalendarProvider,
@@ -14,6 +15,7 @@ interface ActiveConnection {
   provider: CalendarProvider;
   calendarId: string;
   tokens: CalendarTokens;
+  lastError: string | null;
 }
 
 export interface CalendarSyncResult {
@@ -24,6 +26,23 @@ export interface CalendarSyncResult {
 
 /** Refresh a little before expiry so requests don't race the deadline. */
 const REFRESH_MARGIN_MS = 60_000;
+
+/** A host-facing explanation of why calendar sync stopped. */
+export function describeCalendarError(error: unknown): string {
+  if (error instanceof GoogleApiError) {
+    if (error.body.includes('invalid_grant')) {
+      return 'Google access expired or was revoked. Reconnect your calendar to resume syncing.';
+    }
+    if (error.status === 401 || error.status === 403) {
+      return `Google rejected the request (HTTP ${error.status}). Reconnect your calendar.`;
+    }
+    return `Google ${error.operation} failed (HTTP ${error.status}).`;
+  }
+  if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
+    return 'Google Calendar did not respond in time.';
+  }
+  return (error instanceof Error ? error.message : String(error)).slice(0, 200);
+}
 
 /**
  * Owns calendar connections: encrypts tokens at rest, refreshes them, and applies the error
@@ -64,6 +83,8 @@ export class CalendarService {
       accessTokenEnc: this.cipher.encrypt(account.accessToken),
       refreshTokenEnc: account.refreshToken ? this.cipher.encrypt(account.refreshToken) : null,
       tokenExpiresAt: account.expiresAt,
+      lastError: null,
+      lastErrorAt: null,
     };
     return this.db.calendarConnection.upsert({
       where: { userId: user.id },
@@ -107,7 +128,30 @@ export class CalendarService {
         },
       });
     }
-    return { id: connection.id, provider, calendarId: connection.calendarId, tokens };
+    return {
+      id: connection.id,
+      provider,
+      calendarId: connection.calendarId,
+      tokens,
+      lastError: connection.lastError,
+    };
+  }
+
+  /** Remembers why sync failed so the host sees it on the Integrations page. */
+  private async recordFailure(userId: string, error: unknown) {
+    await this.db.calendarConnection
+      .updateMany({
+        where: { userId },
+        data: { lastError: describeCalendarError(error), lastErrorAt: new Date() },
+      })
+      .catch(() => {});
+  }
+
+  private async recordSuccess(active: ActiveConnection) {
+    if (!active.lastError) return;
+    await this.db.calendarConnection
+      .update({ where: { id: active.id }, data: { lastError: null, lastErrorAt: null } })
+      .catch(() => {});
   }
 
   /** External busy blocks; returns [] (and logs) if the calendar can't be read. */
@@ -115,9 +159,12 @@ export class CalendarService {
     try {
       const active = await this.active(userId);
       if (!active) return [];
-      return await active.provider.busy(active.tokens, active.calendarId, range);
+      const busy = await active.provider.busy(active.tokens, active.calendarId, range);
+      await this.recordSuccess(active);
+      return busy;
     } catch (error) {
       this.log.warn({ err: error, userId }, 'calendar free/busy failed; continuing without it');
+      await this.recordFailure(userId, error);
       return [];
     }
   }
@@ -127,9 +174,11 @@ export class CalendarService {
       const active = await this.active(userId);
       if (!active) return null;
       const created = await active.provider.createEvent(active.tokens, active.calendarId, event);
+      await this.recordSuccess(active);
       return { provider: active.provider.name, ...created };
     } catch (error) {
       this.log.error({ err: error, bookingId: event.bookingId }, 'calendar event create failed');
+      await this.recordFailure(userId, error);
       return null;
     }
   }
@@ -145,9 +194,11 @@ export class CalendarService {
       const active = await this.active(userId);
       if (!active || active.provider.name !== providerName) return false;
       await active.provider.updateEvent(active.tokens, active.calendarId, eventId, event);
+      await this.recordSuccess(active);
       return active.provider.name === 'google';
     } catch (error) {
       this.log.error({ err: error, bookingId: event.bookingId }, 'calendar event update failed');
+      await this.recordFailure(userId, error);
       return false;
     }
   }
@@ -157,9 +208,11 @@ export class CalendarService {
       const active = await this.active(userId);
       if (!active || active.provider.name !== providerName) return false;
       await active.provider.deleteEvent(active.tokens, active.calendarId, eventId);
+      await this.recordSuccess(active);
       return active.provider.name === 'google';
     } catch (error) {
       this.log.error({ err: error, eventId }, 'calendar event delete failed');
+      await this.recordFailure(userId, error);
       return false;
     }
   }

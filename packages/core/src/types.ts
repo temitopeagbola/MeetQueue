@@ -124,6 +124,8 @@ export interface IntegrationsDTO {
     connected: boolean;
     provider: 'google' | 'mock' | null;
     accountEmail: string | null;
+    /** Last sync failure (e.g. expired Google access), shown until the next success. */
+    error: string | null;
     /** Why connecting a real calendar is unavailable, if it is. */
     restriction: string | null;
   };

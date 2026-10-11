@@ -34,6 +34,7 @@ export async function integrationRoutes(app: FastifyInstance) {
         connected: !!connection,
         provider: connection ? (connection.provider as 'google' | 'mock') : null,
         accountEmail: connection?.accountEmail ?? null,
+        error: connection?.lastError ?? null,
         restriction: user.isDemo
           ? 'The shared demo account always uses the mock calendar so visitors never connect a real Google account to it.'
           : calendar.mode === 'mock'

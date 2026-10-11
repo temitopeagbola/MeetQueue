@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { GoogleApiError } from '../../src/providers/calendar/google';
 import { MockCalendarProvider } from '../../src/providers/calendar/mock';
 import {
   bookUrl,
   bookingPayload,
   createTestApp,
+  slotsUrl,
   resetDatabase,
   sessionCookie,
   setupHost,
@@ -235,6 +237,55 @@ describe('calendar integration (mock provider)', () => {
       headers: { cookie },
     });
     expect(await ctx.db.calendarConnection.count()).toBe(0);
+  });
+
+  it('flags a broken Google connection instead of failing silently', async () => {
+    class ExpiredGoogle extends MockCalendarProvider {
+      failing = true;
+      override async busy(...args: Parameters<MockCalendarProvider['busy']>) {
+        if (this.failing) throw new GoogleApiError(400, '{"error":"invalid_grant"}', 'free/busy');
+        return super.busy(...args);
+      }
+    }
+    const google = new ExpiredGoogle('http://localhost:3000/api/integrations/google/callback');
+    const app = await createTestApp({ google: Object.assign(google, { name: 'google' as const }) });
+    try {
+      const { cookie } = await setupHost(app.app);
+      const start = await app.app.inject({
+        method: 'GET',
+        url: '/api/integrations/google/connect',
+        headers: { cookie },
+      });
+      const state = start.cookies.find((c) => c.name === 'mq_oauth_state')!.value;
+      const location = new URL(start.headers.location as string);
+      await app.app.inject({
+        method: 'GET',
+        url: `${location.pathname}${location.search}`,
+        headers: { cookie: `${cookie}; mq_oauth_state=${state}` },
+      });
+
+      // Booking pages keep working; the host is told why their calendar isn't being checked.
+      const slots = await app.app.inject({ method: 'GET', url: slotsUrl() });
+      expect(slots.statusCode).toBe(200);
+      const status = await app.app.inject({
+        method: 'GET',
+        url: '/api/integrations',
+        headers: { cookie },
+      });
+      expect(status.json().calendar.error).toContain('expired or was revoked');
+
+      // The next successful sync clears it.
+      google.failing = false;
+      await app.app.inject({ method: 'GET', url: slotsUrl() });
+      const healed = await app.app.inject({
+        method: 'GET',
+        url: '/api/integrations',
+        headers: { cookie },
+      });
+      expect(healed.json().calendar.error).toBeNull();
+    } finally {
+      await app.close();
+    }
   });
 
   it('rejects a callback whose state does not match the cookie', async () => {
