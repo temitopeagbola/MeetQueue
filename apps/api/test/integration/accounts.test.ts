@@ -297,6 +297,35 @@ describe('demo account', () => {
     expect(reset.statusCode).toBe(200);
   });
 
+  it('cannot be hijacked by registering the demo username or email', async () => {
+    const asDemo = (overrides: Record<string, string>) =>
+      ctx.app.inject({
+        method: 'POST',
+        url: '/api/auth/signup',
+        payload: {
+          name: 'Mallory',
+          email: 'mallory@example.org',
+          username: 'mallory',
+          password: 'long enough password',
+          timezone: 'UTC',
+          ...overrides,
+        },
+      });
+    expect((await asDemo({ username: 'demo' })).statusCode).toBe(400);
+    const reservedEmail = await asDemo({ email: 'demo@example.com' });
+    expect(reservedEmail.statusCode).toBe(409);
+    expect(reservedEmail.json().error.code).toBe('EMAIL_RESERVED');
+
+    // Even if a regular account held the name (e.g. created before it was reserved),
+    // "Try the demo" refuses to sign visitors into it.
+    await ctx.db.user.create({
+      data: { username: 'demo', email: 'mallory@example.org', name: 'Mallory', passwordHash: 'x' },
+    });
+    const demo = await ctx.app.inject({ method: 'POST', url: '/api/auth/demo', payload: {} });
+    expect(demo.statusCode).toBe(503);
+    expect(demo.cookies.find((c) => c.name === 'mq_session')).toBeUndefined();
+  });
+
   it('masks visitors’ real email addresses on the shared demo dashboard', async () => {
     const cookie = sessionCookie(
       await ctx.app.inject({ method: 'POST', url: '/api/auth/demo', payload: {} }),

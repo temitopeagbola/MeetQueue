@@ -2,7 +2,10 @@ import { z } from 'zod';
 import { findRuleProblems } from './slots';
 import { MINUTES_PER_DAY, isValidTimeZone } from './time';
 
-/** Paths the web app owns at the top level, so they can't be claimed as public usernames. */
+/**
+ * Names that can't be claimed at sign-up: top-level paths the web app owns, plus `demo`, the
+ * shared demo host (claiming it would hand every "Try the demo" visitor to that account).
+ */
 export const RESERVED_USERNAMES = new Set([
   'admin',
   'api',
@@ -10,6 +13,7 @@ export const RESERVED_USERNAMES = new Set([
   'book',
   'booking',
   'dashboard',
+  'demo',
   'demo-admin',
   'help',
   'login',

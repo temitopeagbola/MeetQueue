@@ -119,6 +119,12 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await app.register(rateLimit, {
       max: 300,
       timeWindow: '1 minute',
+      // Behind Netlify every request comes from Netlify's proxy; Netlify passes the visitor's
+      // address in this header (see README for the residual risk of direct calls).
+      keyGenerator: (req) => {
+        const forwarded = req.headers['x-nf-client-connection-ip'];
+        return (Array.isArray(forwarded) ? forwarded[0] : forwarded) || req.ip;
+      },
       errorResponseBuilder: (_req, context) =>
         new AppError(
           429,

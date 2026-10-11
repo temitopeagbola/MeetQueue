@@ -3,8 +3,9 @@ import type { FastifyInstance } from 'fastify';
 import { toUserDTO } from '../dto';
 import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from '../lib/crypto';
 import { AppError, conflict, isUniqueViolation, notFound, parseInput } from '../lib/errors';
+import { LoginThrottle } from '../lib/login-throttle';
 import { currentUser, endSession, requireUser, startSession } from '../lib/session';
-import { ensureDemoAccount } from '../services/demo';
+import { DEMO_EMAIL, ensureDemoAccount } from '../services/demo';
 
 const authLimit = { rateLimit: { max: 20, timeWindow: '1 minute' } };
 
@@ -17,9 +18,15 @@ const DEFAULT_RULES = [1, 2, 3, 4, 5].map((weekday) => ({
 
 export async function authRoutes(app: FastifyInstance) {
   const { db, config } = app.deps;
+  const throttle = new LoginThrottle();
 
   app.post('/signup', { config: authLimit }, async (request, reply) => {
     const input = parseInput(signupSchema, request.body);
+    if (input.email === DEMO_EMAIL) {
+      throw conflict('EMAIL_RESERVED', 'That email address is reserved.', {
+        email: ['That email address is reserved'],
+      });
+    }
     const existing = await db.user.findFirst({
       where: { OR: [{ email: input.email }, { username: input.username }] },
       select: { email: true, username: true },
@@ -65,12 +72,22 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post('/login', { config: authLimit }, async (request, reply) => {
     const input = parseInput(loginSchema, request.body);
+    const wait = throttle.retryAfterSeconds(input.email);
+    if (wait > 0) {
+      throw new AppError(
+        429,
+        'TOO_MANY_ATTEMPTS',
+        `Too many failed sign-ins for this account. Try again in ${Math.ceil(wait / 60)} min.`,
+      );
+    }
     const user = await db.user.findUnique({ where: { email: input.email } });
     // Always run scrypt so response time doesn't reveal which emails exist.
     const valid = await verifyPassword(input.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
     if (!user || !valid || user.isDemo) {
+      throttle.recordFailure(input.email);
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
     }
+    throttle.recordSuccess(input.email);
     await startSession(app, reply, user.id);
     return { user: toUserDTO(user) };
   });

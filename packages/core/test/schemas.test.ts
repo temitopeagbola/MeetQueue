@@ -25,6 +25,7 @@ describe('signupSchema', () => {
 
   it('rejects reserved usernames, bad timezones and short passwords', () => {
     expect(signupSchema.safeParse({ ...valid, username: 'dashboard' }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...valid, username: 'Demo' }).success).toBe(false);
     expect(signupSchema.safeParse({ ...valid, username: '-ada' }).success).toBe(false);
     expect(signupSchema.safeParse({ ...valid, timezone: 'Mars/Olympus' }).success).toBe(false);
     expect(signupSchema.safeParse({ ...valid, password: 'short' }).success).toBe(false);

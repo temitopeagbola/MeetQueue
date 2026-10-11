@@ -3,7 +3,7 @@ import { computeBookingTimes, generateSlots, type WeeklyRule } from '@meetqueue/
 import type { Db } from '../db';
 import type { MeetingType, User } from '../generated/prisma/client';
 import { createCipher, hashPassword, randomToken, sha256 } from '../lib/crypto';
-import { isExclusionViolation } from '../lib/errors';
+import { AppError, isExclusionViolation } from '../lib/errors';
 
 export const DEMO_USERNAME = 'demo';
 export const DEMO_EMAIL = 'demo@example.com';
@@ -93,6 +93,9 @@ const INVITEES = [
 
 const MIN_UPCOMING = 4;
 
+const demoUnavailable = () =>
+  new AppError(503, 'DEMO_UNAVAILABLE', 'The demo account is unavailable on this server.');
+
 async function createSeedBooking(
   db: Db,
   host: User,
@@ -142,7 +145,10 @@ export async function ensureDemoAccount(
 ): Promise<User> {
   const now = options.now ?? new Date();
   let host = await db.user.findUnique({ where: { username: DEMO_USERNAME } });
+  // Never adopt a regular account as the demo host, even if it somehow holds the name/email.
+  if (host && !host.isDemo) throw demoUnavailable();
   if (!host) {
+    if (await db.user.findUnique({ where: { email: DEMO_EMAIL } })) throw demoUnavailable();
     host = await db.user.create({
       data: {
         username: DEMO_USERNAME,
