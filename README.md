@@ -232,6 +232,13 @@ runtime is detected automatically. Add one environment variable and redeploy:
 
 The build fails fast with a clear message if `API_URL` is missing on Netlify.
 
+Monorepo detail: Netlify installs dependencies in the base directory and only chooses pnpm when
+it finds a `pnpm-lock.yaml` there, so `apps/web/pnpm-lock.yaml` is a symlink to the root lockfile
+and `apps/web/package.json` pins pnpm through `packageManager`. If your Netlify account ever
+behaves differently, the officially documented alternative is: delete `base` from `netlify.toml`,
+move the file to `apps/web/`, and set **Package directory = `apps/web`** in the site's build
+settings.
+
 ## Environment variables
 
 Every variable is listed with comments in [`.env.example`](.env.example).
