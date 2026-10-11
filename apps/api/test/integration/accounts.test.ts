@@ -295,6 +295,32 @@ describe('demo account', () => {
     expect(reset.statusCode).toBe(200);
   });
 
+  it('masks visitors’ real email addresses on the shared demo dashboard', async () => {
+    const cookie = sessionCookie(
+      await ctx.app.inject({ method: 'POST', url: '/api/auth/demo', payload: {} }),
+    );
+    const slots = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/public/users/demo/meeting-types/consultation/slots?start=2026-10-12&end=2026-10-16&timezone=UTC',
+    });
+    const start = (slots.json().days as { slots: string[] }[])[0]!.slots[0]!;
+    const booked = await ctx.app.inject({
+      method: 'POST',
+      url: '/api/public/users/demo/meeting-types/consultation/bookings',
+      payload: { start, name: 'Visitor', email: 'visitor.real@gmail.com', timezone: 'UTC' },
+    });
+    expect(booked.statusCode).toBe(201);
+
+    const list = await ctx.app.inject({ method: 'GET', url: '/api/bookings', headers: { cookie } });
+    const emails = (list.json().bookings as { inviteeEmail: string }[]).map((b) => b.inviteeEmail);
+    expect(emails).toContain('vi***@gmail.com');
+    expect(emails).not.toContain('visitor.real@gmail.com');
+    expect(emails).toContain('jordan.lee@example.com');
+
+    const log = await ctx.app.inject({ method: 'GET', url: '/api/emails', headers: { cookie } });
+    expect(log.body).not.toContain('visitor.real@gmail.com');
+  });
+
   it('cannot be used with a password, and never connects a real Google account', async () => {
     await ctx.app.inject({ method: 'POST', url: '/api/auth/demo', payload: {} });
     const login = await ctx.app.inject({

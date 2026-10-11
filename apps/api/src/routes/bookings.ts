@@ -37,7 +37,11 @@ export async function bookingRoutes(app: FastifyInstance) {
       db.booking.count({ where: { hostId: user.id, ...filters.past } }),
       db.booking.count({ where: { hostId: user.id, ...filters.cancelled } }),
     ]);
-    return { bookings: rows.map(toHostBookingDTO), counts: { upcoming, past, cancelled } };
+    const maskEmails = user.isDemo;
+    return {
+      bookings: rows.map((row) => toHostBookingDTO(row, { maskEmails })),
+      counts: { upcoming, past, cancelled },
+    };
   });
 
   app.post('/:id/cancel', async (request) => {
@@ -45,6 +49,6 @@ export async function bookingRoutes(app: FastifyInstance) {
     const { id } = parseInput(idParams, request.params);
     const { reason } = parseInput(cancelSchema, request.body);
     const booking = await bookings.cancelByHost(user.id, id, reason);
-    return { booking: toHostBookingDTO(booking) };
+    return { booking: toHostBookingDTO(booking, { maskEmails: user.isDemo }) };
   });
 }

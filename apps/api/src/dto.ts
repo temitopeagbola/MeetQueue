@@ -7,6 +7,7 @@ import type {
   UserDTO,
 } from '@meetqueue/core';
 import type { Booking, MeetingType, User } from './generated/prisma/client';
+import { maskEmail } from './lib/privacy';
 
 export const toUserDTO = (u: User): UserDTO => ({
   id: u.id,
@@ -52,13 +53,16 @@ export const toPublicMeetingTypeDTO = (m: MeetingType): PublicMeetingTypeDTO => 
   maxDaysAhead: m.maxDaysAhead,
 });
 
-export const toHostBookingDTO = (b: Booking & { meetingType: MeetingType }): HostBookingDTO => ({
+export const toHostBookingDTO = (
+  b: Booking & { meetingType: MeetingType },
+  options: { maskEmails?: boolean } = {},
+): HostBookingDTO => ({
   id: b.id,
   status: b.status,
   startsAt: b.startsAt.toISOString(),
   endsAt: b.endsAt.toISOString(),
   inviteeName: b.inviteeName,
-  inviteeEmail: b.inviteeEmail,
+  inviteeEmail: options.maskEmails ? maskEmail(b.inviteeEmail) : b.inviteeEmail,
   inviteeTimezone: b.inviteeTimezone,
   notes: b.notes,
   meetingType: {
