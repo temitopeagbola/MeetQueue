@@ -30,6 +30,7 @@
     "luxon": "^3.7.2",
     "nodemailer": "^10.1.0",
     "pg": "^8.23.1",
+    "prisma": "7.10.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -37,7 +38,6 @@
     "@types/node": "^22.20.5",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
-    "prisma": "7.10.0",
     "tsup": "^8.5.1",
     "tsx": "^4.23.15",
     "vitest": "^4.1.11"

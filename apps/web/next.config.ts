@@ -7,6 +7,9 @@ const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..'
 // The browser only ever calls same-origin /api/*; Next proxies it to the Fastify API. That keeps
 // session cookies first-party and lets Google's OAuth redirect land on the public site.
 // Read at build time (Netlify / Docker build args).
+if (process.env.NETLIFY === 'true' && !process.env.API_URL) {
+  throw new Error('Set API_URL (your Render API URL) in the Netlify site environment variables.');
+}
 const apiUrl = (process.env.API_URL || 'http://localhost:4000').replace(/\/+$/, '');
 
 const securityHeaders = [

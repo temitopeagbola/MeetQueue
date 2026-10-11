@@ -1,0 +1,68 @@
+# One command, whole system: `docker compose up --build`
+#   Web:     http://localhost:3000   (Next.js, proxies /api to the API)
+#   API:     http://localhost:4000   (Fastify)
+#   Mailpit: http://localhost:8025   (every email MeetQueue sends, with .ics attachments)
+name: meetqueue
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: meetqueue
+      POSTGRES_PASSWORD: meetqueue
+      POSTGRES_DB: meetqueue
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U meetqueue -d meetqueue']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://meetqueue:meetqueue@db:5432/meetqueue
+      WEB_ORIGIN: http://localhost:3000
+      COOKIE_SECURE: 'false'
+      TOKEN_ENCRYPTION_KEY: local-docker-only-not-a-secret
+      EMAIL_PROVIDER: smtp
+      SMTP_URL: smtp://mailpit:1025
+      EMAIL_FROM: MeetQueue <bookings@meetqueue.local>
+      # Uses Google when these are set (and CALENDAR_PROVIDER is unset); mock otherwise.
+      CALENDAR_PROVIDER: ${CALENDAR_PROVIDER:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      RUN_SEED: 'true'
+    ports:
+      - '4000:4000'
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_URL: http://api:4000
+    ports:
+      - '3000:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

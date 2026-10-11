@@ -1,7 +1,15 @@
+# Netlify builds the Next.js app in apps/web (pnpm workspace; deps install from the repo root).
+# Netlify's Next.js runtime is detected automatically.
+#
+# Required site environment variable (Site configuration → Environment variables):
+#   API_URL = https://<your-render-service>.onrender.com
+# It's read at build time to proxy /api/* to the API, so redeploy after changing it.
+
 [build]
-  base = "frontend"
-  command = "npm run build"
+  base = "apps/web"
+  command = "pnpm run build"
   publish = ".next"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"

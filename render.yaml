@@ -1,0 +1,47 @@
+# Render Blueprint for the MeetQueue API (free web service, Docker runtime).
+# New → Blueprint → pick this repo. Values marked `sync: false` are prompted for on creation.
+services:
+  - type: web
+    name: meetqueue-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/core/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - render.yaml
+    envVars:
+      # Neon: pooled connection string (host contains "-pooler"), with ?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      # Neon: direct (non-pooled) connection string, used only for `prisma migrate deploy`
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: WEB_ORIGIN
+        value: https://meetqueue.temitopeagbola.com
+      - key: COOKIE_SECURE
+        value: 'true'
+      # Encrypts Google OAuth tokens at rest (AES-256-GCM). Render generates a random value.
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      # Google Calendar: leave empty to run the mock provider.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Email: set SMTP_URL (e.g. smtp://user:pass@smtp-relay.brevo.com:587) to deliver for real.
+      - key: SMTP_URL
+        sync: false
+      - key: EMAIL_FROM
+        value: MeetQueue <no-reply@temitopeagbola.com>
+      # true = reset the demo host on every boot. The demo also self-heals on each demo login.
+      - key: RUN_SEED
+        value: 'false'
