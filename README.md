@@ -157,13 +157,14 @@ Requires Node 22 and pnpm 10 (`corepack enable`).
 
 ```bash
 pnpm install
-cp .env.example .env                 # defaults match the compose Postgres below
+cp .env.example .env.local           # gitignored; defaults match the compose Postgres
 docker compose up -d db mailpit      # or point DATABASE_URL at your own Postgres 16
 pnpm db:migrate && pnpm db:seed
 pnpm dev                              # web :3000, API :4000
 ```
 
-Set `SMTP_URL=smtp://localhost:1025` in `.env` to send emails to Mailpit instead of the console.
+Set `SMTP_URL=smtp://localhost:1025` in `.env.local` to send emails to Mailpit instead of the console.
+The API reads `.env.local` before `.env` (app directory first, then the repo root).
 
 ### Tests
 

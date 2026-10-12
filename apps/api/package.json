@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "prisma generate",
-    "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsup",
     "start": "node dist/server.js",
     "lint": "eslint .",

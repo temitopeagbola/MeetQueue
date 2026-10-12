@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 import { z } from 'zod';
 
@@ -106,7 +107,13 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): AppConfig {
   };
 }
 
-/** Loads apps/api/.env and the repo-root .env (local development only). */
-export function loadDotenvFiles() {
-  loadDotenv({ path: ['.env', '../../.env'], quiet: true });
+/** Env files read in local development, highest precedence first (secrets live in .env.local). */
+export const DOTENV_FILES = ['.env.local', '.env', '../../.env.local', '../../.env'];
+
+/**
+ * Loads apps/api/.env.local, apps/api/.env, then the repo-root equivalents (local development
+ * only). The first file that sets a variable wins, and real environment variables beat all.
+ */
+export function loadDotenvFiles(cwd = process.cwd()) {
+  loadDotenv({ path: DOTENV_FILES.map((file) => resolve(cwd, file)), quiet: true });
 }

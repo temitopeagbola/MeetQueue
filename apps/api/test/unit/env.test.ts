@@ -61,3 +61,28 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...base, NODE_ENV: 'production' }).cookieSecure).toBe(true);
   });
 });
+
+describe('loadDotenvFiles', () => {
+  it('prefers .env.local over .env, and app files over the repo root', async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+    const root = mkdtempSync(join(tmpdir(), 'mq-env-'));
+    const app = join(root, 'apps', 'api');
+    mkdirSync(app, { recursive: true });
+    writeFileSync(join(root, '.env'), 'MQ_T_A=root-env\nMQ_T_B=root-env\nMQ_T_C=root-env\n');
+    writeFileSync(join(root, '.env.local'), 'MQ_T_A=root-local\nMQ_T_B=root-local\n');
+    writeFileSync(join(app, '.env'), 'MQ_T_A=app-env\n');
+    writeFileSync(join(app, '.env.local'), 'MQ_T_D=app-local\n');
+    const { loadDotenvFiles } = await import('../../src/env');
+    try {
+      loadDotenvFiles(app);
+      expect(process.env.MQ_T_A).toBe('app-env');
+      expect(process.env.MQ_T_B).toBe('root-local');
+      expect(process.env.MQ_T_C).toBe('root-env');
+      expect(process.env.MQ_T_D).toBe('app-local');
+    } finally {
+      for (const key of ['MQ_T_A', 'MQ_T_B', 'MQ_T_C', 'MQ_T_D']) delete process.env[key];
+    }
+  });
+});

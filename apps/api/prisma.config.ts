@@ -3,8 +3,8 @@ import { defineConfig } from 'prisma/config';
 
 // Prisma 7 doesn't read .env on its own. Migrations prefer a direct (non-pooled) connection,
 // e.g. Neon's direct host, and fall back to DATABASE_URL.
-// Load apps/api/.env first, then the repo-root .env (shared with docker-compose).
-config({ path: ['.env', '../../.env'], quiet: true });
+// Same files and precedence as src/env.ts: .env.local (secrets) before .env, app before root.
+config({ path: ['.env.local', '.env', '../../.env.local', '../../.env'], quiet: true });
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
