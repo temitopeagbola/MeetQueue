@@ -1,0 +1,16 @@
+node_modules
+dist
+.next
+out
+coverage
+*.tsbuildinfo
+next-env.d.ts
+# Local env files hold real secrets: never commit them. Only .env.example is tracked.
+.env
+.env.*
+!.env.example
+apps/api/src/generated
+playwright-report
+test-results
+.DS_Store
+.netlify

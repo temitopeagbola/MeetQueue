@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+**/dist
+**/.next
+**/generated
+**/playwright-report
+**/test-results
+**/migrations/**/*.sql
+coverage

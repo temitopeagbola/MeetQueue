@@ -1,7 +1,20 @@
+# Netlify builds the Next.js app in apps/web. Netlify's Next.js runtime is detected automatically.
+#
+# Monorepo note: Netlify installs dependencies in the base directory and picks pnpm only when a
+# pnpm-lock.yaml is there, so apps/web/pnpm-lock.yaml is a symlink to the root lockfile and
+# apps/web/package.json pins pnpm via `packageManager` (Corepack). `pnpm install` run from
+# apps/web installs the whole workspace from that single lockfile.
+#
+# Required site environment variable (Site configuration → Environment variables):
+#   API_URL = https://<your-render-service>.onrender.com
+# It's read at build time to proxy /api/* to the API, so redeploy after changing it. The build
+# fails with a clear message if it's missing.
+
 [build]
-  base = "frontend"
-  command = "npm run build"
+  base = "apps/web"
+  command = "pnpm run build"
   publish = ".next"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
