@@ -1,0 +1,4 @@
+# Local env files hold real secrets: never commit them. Only .env.example is tracked.
+.env
+.env.*
+!.env.example
