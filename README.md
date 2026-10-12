@@ -1,43 +1,82 @@
 # MeetQueue
 
-[![CI](https://github.com/Isaacpyo/MeetQueue/actions/workflows/ci.yml/badge.svg)](https://github.com/Isaacpyo/MeetQueue/actions/workflows/ci.yml)
+[![CI](https://github.com/temitopeagbola/MeetQueue/actions/workflows/ci.yml/badge.svg)](https://github.com/temitopeagbola/MeetQueue/actions/workflows/ci.yml)
 
-**Live demo: https://meetqueue.temitopeagbola.com** (click **Try the demo**; the first request may
-take up to a minute while the free-tier API wakes up)
+Scheduling and booking for people who take meetings: hosts publish their weekly availability
+and meeting types, and invitees book a time on a public page in their own timezone.
 
-MeetQueue is a small, fully working scheduling product in the spirit of Calendly. Hosts set their
-weekly availability, buffers and meeting types; invitees get a public booking page that shows
-open slots in their own timezone; bookings land in the host's Google Calendar (with an `.ics`
-email fallback); and invitees can reschedule or cancel from a private link. Double-booking isn't
-prevented by app code alone: a **Postgres exclusion constraint** makes overlapping bookings
-impossible, even when two people click the same slot at the same moment.
+Production URL: https://meetqueue.temitopeagbola.com (the Netlify custom domain, also the
+`WEB_ORIGIN` in [`render.yaml`](render.yaml)). Its API runs on Render's free tier, which sleeps
+when idle, so the first request after a while can take up to a minute.
 
-## Features
+## Overview
 
-- **Weekly availability**: several windows per day (e.g. a lunch break), in the host's IANA
-  timezone, with daylight-saving changes handled correctly.
-- **Meeting types**: duration, buffer before/after, minimum notice, booking horizon, slot interval,
-  location, colour, on/off switch. Each type has its own link (`/demo/consultation`).
-- **Timezone-aware booking page**: month calendar, timezone switcher, slots grouped by the
-  invitee's local date, validated details form, confirmation with **Add to calendar (.ics)**.
-- **No double-booking**: `EXCLUDE USING gist (host_id WITH =, tstzrange(blocked_start,
-blocked_end) WITH &&) WHERE status = 'CONFIRMED'`, where the blocked range includes buffers.
-  An integration test fires 8 concurrent requests at one slot and asserts exactly one wins.
-- **Google Calendar via OAuth 2.0**: connect/disconnect, free/busy lookups remove busy times
-  from your slots, and events are created, moved and deleted with `sendUpdates=all`. Tokens are
-  AES-256-GCM encrypted at rest.
-- **ICS email fallback**: confirmation, reschedule (`SEQUENCE` bumped) and cancellation
-  (`METHOD:CANCEL`) emails carry a proper `text/calendar` part whenever Google didn't already
-  send the invite.
-- **Reschedule and cancel links**: unguessable per-booking token (only its SHA-256 is stored),
-  redacted from logs and from the host's email log, `Referrer-Policy: no-referrer` on the page.
-- **Host dashboard**: upcoming/past/cancelled bookings, host-side cancel, availability editor,
-  meeting-type CRUD, integrations status and an email log of everything that was sent.
-- **One-click demo**: a seeded host with sample bookings that repairs itself on every demo
-  login and can be reset from the dashboard. Visitors' real email addresses are masked there.
-- **Free-tier friendly**: a "Waking up the server…" banner appears when Render's sleeping API is
-  slow; reads retry through cold starts, and writes run exactly once.
-- **Works without any keys**: mock calendar and console email providers kick in automatically.
+Arranging a meeting usually means a thread of "does Tuesday at 3 work?". MeetQueue replaces that
+with a booking link. A host sets the hours they're available (in their own timezone), creates
+meeting types with a length, buffers and notice period, and shares the link. Invitees see only
+the times that are genuinely free, shown in their timezone, and book in a couple of clicks. The
+booking is added to the host's Google Calendar when one is connected (otherwise an `.ics`
+invitation is emailed), and the invitee gets a private link to reschedule or cancel.
+Double-booking is prevented by the database itself: a Postgres exclusion constraint rejects any
+two confirmed bookings for the same host whose time ranges (including buffers) overlap, even
+when the requests arrive at the same moment.
+
+## Key features
+
+- **Weekly availability**: several windows per day (e.g. around a lunch break) in the host's IANA
+  timezone; slots keep their local wall-clock time across daylight-saving changes.
+- **Meeting types**: duration, buffer before/after, minimum notice, how many days ahead people
+  can book, spacing between start times, location, colour and an on/off switch. Each type has its
+  own URL, e.g. `/demo/consultation`.
+- **Public booking page**: month calendar, timezone switcher, times grouped by the invitee's local
+  date, a validated details form and a confirmation with **Add to calendar (.ics)**.
+- **No double-booking**: the `bookings_no_overlap` exclusion constraint (GiST over
+  `host_id` and the blocked time range, confirmed bookings only) rejects overlaps, buffers
+  included. Losing a race returns `409 SLOT_TAKEN`.
+- **Google Calendar (OAuth 2.0)**: connect/disconnect, free/busy lookups hide times the host is
+  busy, and events are created, moved and deleted with invitations (`sendUpdates=all`). OAuth
+  tokens are AES-256-GCM encrypted at rest; sync failures show as "Needs attention" on the
+  Integrations page.
+- **Email and `.ics` invitations**: confirmation, reschedule and cancellation emails to the
+  invitee and the host. An `.ics` file (`METHOD:REQUEST` / `CANCEL`) is attached whenever Google
+  didn't already send the invite.
+- **Reschedule and cancel links**: a private per-booking token (only its SHA-256 is stored),
+  redacted from request logs and from the email log.
+- **Host dashboard**: upcoming / past / cancelled bookings with host-side cancel, availability
+  editor, meeting types, integrations status and an email log of every notification.
+- **One-click demo**: "Try the demo" signs into a seeded host with sample bookings. The demo data
+  repairs itself on each demo login, can be reset from the dashboard, and masks visitors' real
+  email addresses.
+- **Waking-server state**: when a request is slow (Render cold start) the UI shows "Waking up the
+  server…". Reads retry through the wake-up; writes check the server is up first and are never
+  sent twice.
+- **Works without keys**: with no Google credentials a mock calendar provider is used, and with
+  no SMTP server emails are logged (and still visible in the dashboard) instead of sent.
+
+## Tech stack
+
+| Area           | Technology                                                                     |
+| -------------- | ------------------------------------------------------------------------------ |
+| Language       | TypeScript (strict), Node.js 22, pnpm workspaces                               |
+| Web app        | Next.js 16 (App Router), React 19, Tailwind CSS 4, lucide-react                |
+| API            | Fastify 5, zod 4 validation, Luxon (timezones), nodemailer (SMTP)              |
+| Database       | PostgreSQL 16 (Neon in production) via Prisma 7 with the `pg` driver adapter   |
+| Auth           | Email + password (scrypt), hashed session tokens in an `HttpOnly` cookie       |
+| Integrations   | Google OAuth 2.0 + Calendar API v3 (REST); mock provider without credentials   |
+| Hosting        | Netlify (web), Render free web service in Docker (API), Neon (Postgres)        |
+| Tests and CI   | Vitest, Playwright, GitHub Actions                                             |
+| Local services | Docker Compose: Postgres 16, Mailpit (catches outgoing email), API and web app |
+
+**Stack notes:**
+
+- The Google OAuth app is meant to stay in **Testing** mode with listed test users, so no Google
+  verification review is needed. Only those accounts can connect a calendar.
+- The **mock calendar provider** is selected when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are
+  missing or `CALENDAR_PROVIDER=mock`. It follows the same connect → callback → create / update /
+  delete path. The shared demo account always uses it, so visitors never attach a real Google
+  account to it.
+- The API is a separate Fastify service (not Next.js route handlers) so it can run on Render,
+  and email goes through any SMTP relay or the console.
 
 ## Architecture
 
@@ -52,7 +91,7 @@ flowchart LR
   subgraph Render["Render · free web service (Docker)"]
     API["Fastify API<br/>BookingService · CalendarService · Notifier"]
   end
-  DB[("Neon Postgres<br/>exclusion constraint")]
+  DB[("Postgres (Neon)<br/>exclusion constraint")]
   GOOGLE["Google OAuth +<br/>Calendar API"]
   MOCK["Mock calendar provider"]
   SMTP["SMTP relay<br/>(Mailpit locally)"]
@@ -62,7 +101,7 @@ flowchart LR
   API -- "Prisma 7 + pg adapter" --> DB
   API -- "free/busy, events" --> GOOGLE
   API -. "no creds / demo account" .-> MOCK
-  API -- "confirmations + .ics" --> SMTP
+  API -- "notifications + .ics" --> SMTP
 ```
 
 ```mermaid
@@ -84,58 +123,50 @@ sequenceDiagram
   else
     P-->>A: row
     A->>G: create event (invite) or skip
-    A->>A: email confirmation (+ .ics unless Google invited)
     A-->>I: 201 + one-time manage token
+    A->>A: send confirmation emails in the background (+ .ics unless Google invited)
   end
 ```
 
-The browser only ever calls its own origin: Next.js rewrites `/api/*` to the API. That keeps the
-session cookie first-party (`HttpOnly`, `SameSite=Lax`, `Secure` in production) and lets Google's
-OAuth redirect land on the public domain. The shared `packages/core` holds the slot engine, ICS
-writer and zod schemas, so the API and the forms validate with exactly the same rules.
+- The browser only calls its own origin. Next.js rewrites `/api/*` to the API (`API_URL`, read at
+  build time), so the session cookie is first-party (`SameSite=Lax`, `Secure` in production) and
+  Google's OAuth redirect lands on the public domain.
+- `packages/core` is shared by both apps: the slot engine, the `.ics` writer, zod schemas and the
+  JSON types, so the API and the forms validate with the same rules.
+- **API routes** (all under `/api`): `health`, `auth` (signup, login, logout, me, demo, demo reset),
+  `availability`, `meeting-types`, `bookings` (host list + cancel), `integrations` (Google connect /
+  callback / disconnect), `emails`, `public/users/:username/...` (profile, meeting type, slots,
+  create booking) and `manage/:token` (view, slots, reschedule, cancel, `.ics`).
+- **Database tables**: `users`, `sessions`, `availability_rules`, `meeting_types`, `bookings`,
+  `calendar_connections`, `email_logs`. Besides foreign keys, the migrations add the
+  `bookings_no_overlap` exclusion constraint and check constraints on booking times,
+  availability rules and meeting-type settings.
 
-```
-apps/web        Next.js 16 App Router UI (Netlify)
-apps/api        Fastify 5 + Prisma 7 REST API (Render), migrations, seed, tests
-packages/core   Slot engine, ICS builder, zod schemas, DTO types (pure TypeScript)
-docs/PLAN.md    Design notes
-```
+## Project structure
 
-## Stack, and what was swapped or added
+| Path                 | What it holds                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `apps/web/`          | Next.js app: landing, auth, dashboard, public booking and manage pages; e2e tests               |
+| `apps/api/`          | Fastify API: routes, services, calendar/email providers, Prisma schema, migrations, seed, tests |
+| `packages/core/`     | Shared slot engine, ICS builder, zod schemas and DTO types                                      |
+| `docs/PLAN.md`       | Design notes                                                                                    |
+| `.github/workflows/` | CI pipeline                                                                                     |
+| `docker-compose.yml` | Whole system locally: Postgres, Mailpit, API, web                                               |
+| `render.yaml`        | Render Blueprint for the API                                                                    |
+| `netlify.toml`       | Netlify build settings for `apps/web`                                                           |
+| `.env.example`       | Every environment variable, with comments                                                       |
+| `AGENTS.md`          | Instructions for coding agents (`CLAUDE.md` imports it)                                         |
 
-| Requested           | Used                                                           |
-| ------------------- | -------------------------------------------------------------- |
-| Next.js             | Next.js 16 (App Router, React 19, Tailwind CSS 4)              |
-| PostgreSQL (Neon)   | PostgreSQL 16 locally / Neon in production                     |
-| Prisma              | Prisma 7 with the `pg` driver adapter; raw SQL for constraints |
-| Google Calendar API | OAuth 2.0 + Calendar REST v3, plus a mock provider             |
+## Getting started
 
-**Swaps (as specified):**
+### Prerequisites
 
-- **Google OAuth app stays in "Testing" mode** with listed test users. Publishing an app that
-  uses Calendar scopes requires Google's verification review, which a portfolio project doesn't
-  need. Only accounts you add as test users can connect, and Google expires testing-mode refresh
-  tokens after 7 days, so reconnecting weekly is expected.
-- **Mock calendar provider when there are no credentials** (`CALENDAR_PROVIDER=mock`, or simply no
-  `GOOGLE_CLIENT_ID`/`SECRET`). It runs the same connect → callback → create/update/delete path,
-  so the app, the demo and the tests work without keys. The shared demo account always uses
-  the mock so visitors never attach a real Google account to it.
+- **Node.js 22** or newer (`.nvmrc`, `engines`)
+- **pnpm 10.28.0** (pinned in `packageManager`; `corepack enable` installs it)
+- **Docker** with Compose, for the local Postgres 16 and Mailpit (or bring your own Postgres 16;
+  the migrations enable the `btree_gist` extension)
 
-**Additions (and why):**
-
-- **A separate Fastify API.** The hosting brief puts the backend on Render with a blueprint and a
-  waking-server state, so the API is its own service instead of Next.js route handlers. Fastify
-  was chosen for its speed, `inject()`-based testing and small footprint.
-- **Email via SMTP or console.** The brief asks for an ICS email fallback but names no email
-  service. SMTP (nodemailer) works with any free relay (Brevo, Resend SMTP, Gmail app password);
-  without `SMTP_URL` emails are logged and visible in the dashboard's email log. docker-compose
-  ships Mailpit so you can read the real messages locally.
-- **Docker runtime on Render.** The same Dockerfile is used by docker-compose and Render, and it
-  runs `prisma migrate deploy` on start (Render's pre-deploy hook isn't available on the free plan).
-
-## Run it locally
-
-### Option A: everything in Docker (one command)
+### Option A: everything in Docker
 
 ```bash
 docker compose up --build
@@ -147,146 +178,158 @@ docker compose up --build
 | http://localhost:4000 | API (`/api/health`)                                |
 | http://localhost:8025 | Mailpit: every email sent, with `.ics` attachments |
 
-The API container migrates and seeds the demo host on boot. To try real Google Calendar locally,
-export `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` before `docker compose up` and add
-`http://localhost:3000/api/integrations/google/callback` as a redirect URI on the OAuth client.
+The API container applies migrations and seeds the demo host on start. To use real Google
+Calendar locally, export `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` before
+`docker compose up`, and add `http://localhost:3000/api/integrations/google/callback` as a
+redirect URI on the OAuth client.
 
 ### Option B: dev servers with hot reload
-
-Requires Node 22 and pnpm 10 (`corepack enable`).
 
 ```bash
 pnpm install
 cp .env.example .env.local           # gitignored; defaults match the compose Postgres
 docker compose up -d db mailpit      # or point DATABASE_URL at your own Postgres 16
 pnpm db:migrate && pnpm db:seed
-pnpm dev                              # web :3000, API :4000
+pnpm dev                             # web on :3000, API on :4000
 ```
 
-Set `SMTP_URL=smtp://localhost:1025` in `.env.local` to send emails to Mailpit instead of the console.
-The API reads `.env.local` before `.env` (app directory first, then the repo root).
+The API reads `apps/api/.env.local`, `apps/api/.env`, then the repo-root `.env.local` and `.env`
+(the first file that sets a variable wins). Set `SMTP_URL` to `smtp://localhost:1025` in
+`.env.local` to send email to Mailpit instead of the console.
 
-### Tests
+### Environment variables
+
+Names only; see [`.env.example`](.env.example) for defaults and comments. Never commit real
+values: `.env` and `.env.local` are gitignored.
+
+| Variable               | Used by | Purpose                                                                   |
+| ---------------------- | ------- | ------------------------------------------------------------------------- |
+| `DATABASE_URL`         | API     | Postgres connection used at runtime (Neon: the pooled URL)                |
+| `DIRECT_DATABASE_URL`  | API     | Optional non-pooled connection for `prisma migrate deploy` (Neon: direct) |
+| `TEST_DATABASE_URL`    | Tests   | Database for API integration tests (created and migrated automatically)   |
+| `PORT`, `HOST`         | API     | Listen address (Render sets `PORT`)                                       |
+| `WEB_ORIGIN`           | API     | Public web URL: CORS and origin check, links in emails, OAuth redirect    |
+| `COOKIE_SECURE`        | API     | Mark cookies `Secure` (on by default in production)                       |
+| `TRUST_PROXY`          | API     | Trust `X-Forwarded-For` from the proxy in front                           |
+| `TOKEN_ENCRYPTION_KEY` | API     | Secret for encrypting OAuth tokens; required in production with Google    |
+| `LOG_LEVEL`            | API     | Log verbosity                                                             |
+| `CALENDAR_PROVIDER`    | API     | `google` or `mock`; auto-detected from the Google credentials             |
+| `GOOGLE_CLIENT_ID`     | API     | Google OAuth client ID                                                    |
+| `GOOGLE_CLIENT_SECRET` | API     | Google OAuth client secret                                                |
+| `GOOGLE_REDIRECT_URI`  | API     | Override for the OAuth callback URL                                       |
+| `EMAIL_PROVIDER`       | API     | `smtp` or `console`; auto-detected from `SMTP_URL`                        |
+| `SMTP_URL`             | API     | SMTP server for real email delivery                                       |
+| `EMAIL_FROM`           | API     | Sender address                                                            |
+| `DEMO_ENABLED`         | API     | Enables the shared demo account and "Try the demo"                        |
+| `RATE_LIMIT_ENABLED`   | API     | In-memory rate limiting                                                   |
+| `RUN_SEED`             | Docker  | Reseed the demo host when the API container starts                        |
+| `API_URL`              | Web     | Where Next.js proxies `/api/*` (read at build time)                       |
+
+## Scripts
+
+Run from the repo root.
+
+| Command                                                   | What it does                                                                 |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm dev`                                                | API (`tsx watch`) and web (`next dev`) together                              |
+| `pnpm build`                                              | Builds the API bundle and the Next.js app                                    |
+| `pnpm lint`                                               | ESLint in every package, then a Prettier check                               |
+| `pnpm format`                                             | Formats the repo with Prettier                                               |
+| `pnpm typecheck`                                          | `tsc --noEmit` everywhere (plus Next.js route types)                         |
+| `pnpm test`                                               | Unit and integration tests in every package                                  |
+| `pnpm test:unit`                                          | Unit tests only (no database needed)                                         |
+| `pnpm test:e2e`                                           | Playwright smoke test (run `pnpm build` first)                               |
+| `pnpm db:migrate`                                         | Applies pending migrations (`prisma migrate deploy`)                         |
+| `pnpm db:seed`                                            | Creates or resets the demo host and its sample data                          |
+| `pnpm --filter @meetqueue/api db:migrate --name <change>` | Creates a new migration after editing `schema.prisma` (`prisma migrate dev`) |
+
+## Testing
 
 ```bash
-pnpm lint          # ESLint (all packages) + Prettier check
-pnpm typecheck     # tsc strict, Next.js route types
-pnpm test          # unit + API integration tests (needs Postgres; creates TEST_DATABASE_URL's DB)
-pnpm test:unit     # unit tests only, no database
-pnpm build && pnpm test:e2e   # Playwright smoke test at desktop and 375px widths
+pnpm test:unit                 # unit tests, no database
+pnpm test                      # unit + API integration tests (needs Postgres)
+pnpm build && pnpm test:e2e    # Playwright, desktop and 375px wide
 ```
 
-- `packages/core`: slot engine (buffers, notice, horizon, split days, DST, timezone grouping),
-  ICS escaping/folding, schemas.
-- `apps/api`: unit tests (crypto, env, error mapping, Google client against a mocked `fetch`,
-  privacy masking) and integration tests against real Postgres via `app.inject()`: booking flow,
-  the 8-way concurrent race, DB-level constraint checks, reschedule/cancel, OAuth state, demo
-  account, authorisation.
-- `apps/web`: calendar/format helpers, the API client's retry and waking logic, the banner.
-- `apps/web/e2e`: try demo → book on the public page → see it in the dashboard → cancel via the
-  manage link.
+- **Unit** (Vitest): the slot engine (buffers, notice, horizon, split days, DST, timezone
+  grouping), `.ics` escaping and folding, schemas, crypto, env parsing, error mapping, the Google
+  client against a mocked `fetch`, login throttling, and the web app's date helpers, API client
+  retry/waking logic and banner.
+- **Integration** (Vitest + real Postgres via Fastify `inject()`): the booking flow, eight
+  concurrent requests for one slot (exactly one wins), database-level constraint checks,
+  reschedule and cancel, OAuth state checks, the demo account, authorisation between hosts and
+  slow-email handling. `TEST_DATABASE_URL` defaults to a `meetqueue_test` database on the compose
+  Postgres, which the test setup creates and migrates.
+- **End-to-end** (Playwright): try the demo → book on the public page → see it in the dashboard
+  → cancel through the manage link. It starts the built API and web app itself, or reuses ones
+  already running on ports 4000 and 3000.
 
-CI (GitHub Actions) runs install, lint, typecheck and tests on every push and PR, plus the
-Playwright suite against built apps and a `docker compose build`.
+**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull
+request: install, lint, typecheck and unit + integration tests against a Postgres service; the
+Playwright test against built apps; and `docker compose build`.
 
-## Deploy (all free tiers)
+## Deployment
 
-### 1. Database: Neon
+All three services have free tiers.
 
-1. Create a Neon project (Postgres 16) and a database, e.g. `meetqueue`.
-2. Copy two connection strings from **Connect**: the **pooled** one (host contains `-pooler`)
-   for `DATABASE_URL`, and the **direct** one for `DIRECT_DATABASE_URL`. Keep `?sslmode=require`.
-   Migrations enable the `btree_gist` extension, which Neon supports.
+1. **Database (Neon)**: create a Postgres 16 project and database. Use the **pooled** connection
+   string as `DATABASE_URL` and the **direct** one as `DIRECT_DATABASE_URL` (keep
+   `sslmode=require`).
+2. **API (Render)**: New → Blueprint → this repo. [`render.yaml`](render.yaml) defines
+   `meetqueue-api` (free plan, Docker, region Frankfurt, health check `/api/health`). Enter the
+   prompted variables (`DATABASE_URL`, `DIRECT_DATABASE_URL`, and optionally the Google and SMTP
+   ones); `TOKEN_ENCRYPTION_KEY` is generated. The container applies migrations on start. The
+   demo host is created on the first "Try the demo".
+3. **Google Calendar (optional)**: in Google Cloud, enable the Calendar API, keep the OAuth
+   consent screen in **Testing** with your account as a test user, add the scopes `openid`,
+   `email`, `calendar.events` and `calendar.freebusy`, and create a Web OAuth client with the
+   redirect URI `https://meetqueue.temitopeagbola.com/api/integrations/google/callback`. Put the
+   client ID and secret on Render.
+4. **Email (optional)**: set `SMTP_URL` and `EMAIL_FROM` on Render for any SMTP relay.
+5. **Web (Netlify)**: [`netlify.toml`](netlify.toml) builds `apps/web` (`pnpm run build`,
+   publish `.next`). Set `API_URL` to the Render service URL in the site's environment variables
+   and redeploy; the build stops with a clear error if it's missing. Netlify installs
+   dependencies in the base directory and only chooses pnpm when it finds a lockfile there, so
+   `apps/web/pnpm-lock.yaml` is a symlink to the root lockfile. If that ever fails, the
+   documented alternative is to remove `base`, move `netlify.toml` into `apps/web/` and set
+   **Package directory** to `apps/web` in the site's build settings.
 
-### 2. API: Render
-
-1. Render → **New → Blueprint** → select this repo. `render.yaml` creates `meetqueue-api`
-   (free plan, Docker, health check `/api/health`).
-2. Fill the prompted variables: `DATABASE_URL`, `DIRECT_DATABASE_URL`, and optionally
-   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_URL`. `TOKEN_ENCRYPTION_KEY` is generated.
-3. Deploy. Migrations run on boot; the demo host is created on the first **Try the demo**.
-4. Note the service URL, e.g. `https://meetqueue-api.onrender.com`.
-
-### 3. Google Calendar (optional, otherwise the mock is used)
-
-1. Google Cloud Console → new project → enable the **Google Calendar API**.
-2. **OAuth consent screen**: External, publishing status **Testing**; add scopes
-   `openid`, `email`, `.../auth/calendar.events`, `.../auth/calendar.freebusy`; add your Google
-   account(s) under **Test users**.
-3. **Credentials → OAuth client ID → Web application**. Authorised redirect URI:
-   `https://meetqueue.temitopeagbola.com/api/integrations/google/callback`
-4. Put the client ID/secret on Render and redeploy.
-
-### 4. Email (optional, otherwise emails are only logged)
-
-Any SMTP relay works. For example Brevo's free tier: create an SMTP key, then set
-`SMTP_URL=smtp://<login>:<smtp-key>@smtp-relay.brevo.com:587` and an `EMAIL_FROM` on a sender
-you've verified there.
-
-### 5. Web: Netlify
-
-The existing Netlify site is already linked to this repo with the custom domain. `netlify.toml`
-points it at `apps/web` (base `apps/web`, command `pnpm run build`, publish `.next`); the Next.js
-runtime is detected automatically. Add one environment variable and redeploy:
-
-- `API_URL` = your Render URL (e.g. `https://meetqueue-api.onrender.com`)
-
-The build fails fast with a clear message if `API_URL` is missing on Netlify.
-
-Monorepo detail: Netlify installs dependencies in the base directory and only chooses pnpm when
-it finds a `pnpm-lock.yaml` there, so `apps/web/pnpm-lock.yaml` is a symlink to the root lockfile
-and `apps/web/package.json` pins pnpm through `packageManager`. If your Netlify account ever
-behaves differently, the officially documented alternative is: delete `base` from `netlify.toml`,
-move the file to `apps/web/`, and set **Package directory = `apps/web`** in the site's build
-settings.
-
-## Environment variables
-
-Every variable is listed with comments in [`.env.example`](.env.example).
-
-| Variable                            | Where  | Required | Purpose                                                      |
-| ----------------------------------- | ------ | -------- | ------------------------------------------------------------ |
-| `DATABASE_URL`                      | API    | yes      | Postgres (Neon pooled URL in production)                     |
-| `DIRECT_DATABASE_URL`               | API    | Neon     | Direct URL for `prisma migrate deploy`                       |
-| `WEB_ORIGIN`                        | API    | yes      | Public site URL: CORS/origin check, email links, OAuth       |
-| `TOKEN_ENCRYPTION_KEY`              | API    | prod     | Encrypts OAuth tokens at rest (any long random string)       |
-| `COOKIE_SECURE`                     | API    | no       | Defaults to `true` in production                             |
-| `CALENDAR_PROVIDER`                 | API    | no       | `google` or `mock`; auto-detected from credentials           |
-| `GOOGLE_CLIENT_ID` / `_SECRET`      | API    | no       | Google OAuth client                                          |
-| `GOOGLE_REDIRECT_URI`               | API    | no       | Defaults to `${WEB_ORIGIN}/api/integrations/google/callback` |
-| `EMAIL_PROVIDER`                    | API    | no       | `smtp` or `console`; auto-detected from `SMTP_URL`           |
-| `SMTP_URL` / `EMAIL_FROM`           | API    | no       | SMTP delivery                                                |
-| `DEMO_ENABLED`                      | API    | no       | Enables "Try the demo" (default `true`)                      |
-| `RATE_LIMIT_ENABLED`, `TRUST_PROXY` | API    | no       | Defaults `true`                                              |
-| `RUN_SEED`                          | Docker | no       | Reset the demo host on every boot                            |
-| `PORT`, `HOST`, `LOG_LEVEL`         | API    | no       | Server settings (Render sets `PORT`)                         |
-| `TEST_DATABASE_URL`                 | tests  | no       | Database for API integration tests                           |
-| `API_URL`                           | Web    | yes      | Where `/api/*` is proxied (read at build time)               |
+Pushing to `main` deploys the web app on Netlify and, with `autoDeploy` in `render.yaml`, the API
+on Render.
 
 ## Security notes
 
-- Passwords: scrypt with per-user salt; logins for unknown emails still run scrypt (no timing
-  oracle); an account locks for 15 minutes after 10 failed sign-ins. Sessions: random 256-bit
-  token in an `HttpOnly` cookie, stored hashed, 30-day expiry.
-- CSRF: `SameSite=Lax` cookies, JSON-only request bodies, and an `Origin` check on every write.
-- OAuth: `state` bound to a short-lived cookie; refresh tokens encrypted with AES-256-GCM;
-  the shared demo account can't connect a real Google account, and its username/email are
-  reserved so nobody can register them and capture demo visitors.
-- Manage links: hashed at rest, redacted from request logs and the email log, never sent as a
-  `Referer`, `noindex`.
-- Input validation with zod at every API boundary (params, query and body), plus DB check
-  constraints. Per-route rate limits on auth, booking and manage endpoints, keyed on the
-  visitor IP Netlify forwards (`x-nf-client-connection-ip`).
+- Passwords are hashed with scrypt, and failed logins for unknown emails take as long as real
+  ones. After 10 failed sign-ins within 15 minutes, the account is locked until that window
+  ends. Sessions are random 256-bit tokens, stored hashed, valid for 30 days.
+- CSRF: `SameSite=Lax` cookies, JSON-only request bodies and an `Origin` check on every write.
+- OAuth `state` is bound to a short-lived cookie. The demo account's username and email are
+  reserved so no one can register them.
+- Manage links are hashed at rest, redacted from logs and the email log, never sent as a
+  `Referer` and marked `noindex`.
+- Every API input (params, query, body) is validated with zod, and auth, booking and manage
+  endpoints are rate-limited per client IP (Netlify's `x-nf-client-connection-ip`).
 
-## Known limitations and tech debt
+## Known limitations
 
-- Rate limiting is in-memory (fine for one Render instance). Its client-IP header is trustworthy
-  only via Netlify: someone calling the public `onrender.com` URL directly can forge it. Next
-  steps: a shared secret header added by the web tier, and a shared store (e.g. Upstash Redis).
-- The public booking form can send email to any address (that's the product), so with SMTP
-  enabled it's rate-limited but has no CAPTCHA.
-- No email verification or password reset yet; no date-specific availability overrides.
-- `WEB_ORIGIN` must match the domain users actually visit; Netlify deploy previews can read but
-  writes are rejected by the origin check (and would hit the production API anyway).
-- Google testing-mode refresh tokens expire after 7 days. Bookings keep working with ICS emails,
-  and the Integrations page flags "Needs attention" with the reason until the host reconnects.
+- Rate limiting is in-memory (one Render instance). The client-IP header is only trustworthy
+  behind Netlify; direct calls to the Render URL can forge it.
+- The booking form emails whatever address an invitee enters; it's rate-limited but has no
+  CAPTCHA.
+- No email verification, password reset or date-specific availability overrides yet.
+- `WEB_ORIGIN` must match the domain people use; writes from other origins (e.g. Netlify deploy
+  previews) are rejected.
+- Refresh tokens for a Google OAuth app in Testing mode expire after 7 days, so hosts need to
+  reconnect weekly. Until they do, bookings still work with `.ics` emails.
+
+## Contributing
+
+1. Create a branch from `main` (`feat/…`, `fix/…`, `chore/…`).
+2. Make the change with tests, then run `pnpm lint`, `pnpm typecheck` and `pnpm test`.
+3. Open a pull request against `main`; CI must pass before merging.
+
+Coding agents follow [`AGENTS.md`](AGENTS.md).
+
+## License
+
+All rights reserved.
